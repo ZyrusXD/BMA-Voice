@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">
+        <i class="bi bi-bar-chart-steps"></i>
+        โพลทั้งหมด
+    </h1>
+    {% if user.is_authenticated %}
+    <a href="{% url 'poll_create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle-fill"></i> สร้างโพลใหม่
+    </a>
+    {% endif %}
+</div>
+
+<div class="list-group shadow-sm">
+    {% for poll in polls %}
+    <a href="{% url 'poll_detail' pk=poll.pk %}" class="list-group-item list-group-item-action p-3">
+        <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1">{{ poll.title }}</h5>
+            <small class="text-muted">
+                {% if poll.is_expired %}
+                    <span class="badge bg-secondary">ปิดโหวตแล้ว</span>
+                {% else %}
+                    <span class="badge bg-success">เปิดโหวต</span>
+                {% endif %}
+            </small>
+        </div>
+        <p class="mb-1 small text-muted">
+            โดย: {{ poll.owner.username }} | ปิดโหวต: {{ poll.end_date|date:"d M Y H:i" }}
+        </p>
+    </a>
+    {% empty %}
+    <div class="list-group-item p-3 text-muted">
+        ยังไม่มีโพลในระบบ
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

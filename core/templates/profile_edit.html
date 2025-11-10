@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body p-4 p-md-5">
+                <h2 class="card-title text-center mb-4">
+                    <i class="bi bi-pencil-fill text-primary"></i> 
+                    แก้ไขโปรไฟล์
+                </h2>
+                
+                <form method="post" novalidate enctype="multipart/form-data">
+                    {% csrf_token %} 
+
+                    <div class="text-center mb-4">
+                        {% if user.profile_pic %}
+                            <img src="{{ user.profile_pic.url }}" 
+                                 alt="{{ user.username }}" 
+                                 class="img-fluid rounded-circle" 
+                                 style="width: 120px; height: 120px; object-fit: cover;">
+                        {% else %}
+                            <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=0d6efd&color=fff&size=120" 
+                                 alt="{{ user.username }}" 
+                                 class="img-fluid rounded-circle">
+                        {% endif %}
+                    </div>
+                    
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ field.errors.as_text }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    
+                    <button type="submit" class="btn btn-primary w-100 btn-lg mt-3">
+                        <i class="bi bi-save-fill"></i> บันทึกข้อมูล
+                    </button>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll('form input, form textarea').forEach(el => {
+        if (el.type !== 'checkbox' && el.type !== 'file') {
+            el.classList.add('form-control');
+        }
+        if (el.type === 'file') {
+            el.classList.add('form-control');
+        }
+    });
+</script>
+{% endblock %}

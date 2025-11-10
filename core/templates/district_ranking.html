@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load bma_voice_tags %} 
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        
+        <div class="text-center mb-4">
+            <h1 class="display-4 fw-bold">
+                <i class="bi bi-bar-chart-fill text-success"></i>
+                จัดอันดับความพึงพอใจรายเขต
+            </h1>
+            <p class="fs-5 text-muted">
+                ตารางจัดอันดับคะแนนอารมณ์เฉลี่ยของทุกเขต (เรียงจากพึงพอใจสูงสุด)
+            </p>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0 align-middle">
+                        
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col" style="width: 10%;" class="text-center">อันดับ</th>
+                                <th scope="col">เขตพื้นที่</th>
+                                <th scope="col" class="text-center">จำนวนโพสต์</th>
+                                <th scope="col" class="text-end">คะแนนอารมณ์เฉลี่ย</th>
+                            </tr>
+                        </thead>
+                        
+                        <tbody>
+                            {% for district in district_ranking %}
+                            <tr>
+                                <td class="text-center fw-bold fs-5">
+                                    {% if forloop.counter == 1 %} 🥇
+                                    {% elif forloop.counter == 2 %} 🥈
+                                    {% elif forloop.counter == 3 %} 🥉
+                                    {% else %} {{ forloop.counter }}
+                                    {% endif %}
+                                </td>
+                                
+                                <td>
+                                    <a href="{% url 'district_list' district_name=district.district %}" class="text-decoration-none">
+                                        <strong>{{ district.district }}</strong>
+                                    </a>
+                                </td>
+                                <td class="text-center">
+                                    {{ district.post_count }}
+                                </td>
+                                
+                                <td class="text-end fw-bold" style="color: 
+                                    {% if district.avg_sentiment > 0.5 %} green; 
+                                    {% elif district.avg_sentiment < -0.5 %} red; 
+                                    {% else %} orange; {% endif %}">
+                                    {{ district.avg_sentiment|floatformat:2 }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center p-4 text-muted">
+                                    ยังไม่มีข้อมูล
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

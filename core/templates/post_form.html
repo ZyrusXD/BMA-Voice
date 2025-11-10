@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %} {% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-body p-4 p-md-5">
+                
+                <h2 class="card-title text-center mb-4">
+                    {% if is_editing %}
+                        <i class="bi bi-pencil-fill text-primary"></i> 
+                        แก้ไขโพสต์
+                    {% else %}
+                        <i class="bi bi-plus-circle-fill text-primary"></i> 
+                        สร้างโพสต์ใหม่
+                    {% endif %}
+                </h2>
+                
+                <form method="post" novalidate enctype="multipart/form-data">
+                    {% csrf_token %} 
+                    
+                    {{ form|crispy }}
+                    
+                    <hr class="my-4">
+                    
+                    <h5 class="mb-3">
+                        <i class="bi bi-geo-alt-fill text-danger"></i>
+                        ระบุพิกัด (ปักหมุดบนแผนที่)
+                    </h5>
+                    <div id="map" style="height: 400px; width: 100%;" class="mb-3 rounded"></div>
+                    
+                    <button type="submit" class="btn btn-primary w-100 btn-lg mt-3">
+                        {% if is_editing %}
+                            <i class="bi bi-save-fill"></i> บันทึกการแก้ไข
+                        {% else %}
+                            <i class="bi bi-send-fill"></i> ส่งโพสต์
+                        {% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        
+        // (ดึงค่า Lat/Lon ที่อาจมีอยู่ (ถ้าเป็นการแก้ไข))
+        let startLat = parseFloat(document.getElementById('id_latitude').value) || 13.7563;
+        let startLon = parseFloat(document.getElementById('id_longitude').value) || 100.5018;
+        let startZoom = (document.getElementById('id_latitude').value) ? 17 : 13;
+
+        const latInput = document.getElementById('id_latitude');
+        const lonInput = document.getElementById('id_longitude');
+        const map = L.map('map').setView([startLat, startLon], startZoom);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        const marker = L.marker([startLat, startLon], { draggable: true }).addTo(map);
+        
+        function updateInputs(latlng) {
+            latInput.value = latlng.lat.toFixed(6);
+            lonInput.value = latlng.lng.toFixed(6);
+        }
+        
+        marker.on('dragend', function (e) { updateInputs(e.target.getLatLng()); });
+        map.on('click', function(e) {
+            marker.setLatLng(e.latlng);
+            updateInputs(e.latlng);
+        });
+
+        // (ถ้าเป็นการ "สร้างใหม่" (create) ให้พยายามหา Geolocation)
+        {% if not is_editing %}
+        if ('geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const userLatLng = [position.coords.latitude, position.coords.longitude];
+                    map.setView(userLatLng, 17);
+                    marker.setLatLng(userLatLng);
+                    updateInputs(marker.getLatLng());
+                },
+                function(error) {
+                    // (ถ้าไม่ยอม ก็ใช้ค่าเริ่มต้น BKK)
+                    updateInputs(marker.getLatLng());
+                }
+            );
+        } else {
+            updateInputs(marker.getLatLng());
+        }
+        {% endif %}
+    });
+</script>
+{% endblock %}

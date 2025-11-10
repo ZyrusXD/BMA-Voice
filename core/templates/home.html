@@ -1,0 +1,833 @@
+﻿{% extends 'base.html' %}
+{% load bma_voice_tags %}
+{% load static %}
+
+{% block content %}
+
+<div class="container-fluid px-lg-5 mb-5">
+    <!-- Header with Logo -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center justify-content-between gap-3 p-3 bg-white rounded-3 shadow-sm flex-wrap">
+                <div class="d-flex align-items-center gap-3">
+                    <img src="{% static 'core/images/bma_logo.png' %}" 
+                         alt="BMA Logo" 
+                         class="logo-image"
+                         style="height: 60px; width: auto;">
+                    <div>
+                        <h1 class="mb-0 text-success fw-bold" style="font-size: 1.8rem;">
+                            BMA Voice Dashboard
+                        </h1>
+                        <p class="text-muted mb-0 small">
+                            <i class="bi bi-building"></i> ระบบรับฟังความคิดเห็นประชาชน กรุงเทพมหานคร
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Member Stats -->
+                <div class="d-flex gap-2 flex-wrap">
+                    <div class="badge-stat bg-primary">
+                        <i class="bi bi-people-fill"></i>
+                        <div class="badge-stat-content">
+                            <div class="badge-stat-number">{{ total_users|default:0 }}</div>
+                            <div class="badge-stat-label">สมาชิกทั้งหมด</div>
+                        </div>
+                    </div>
+                    <div class="badge-stat bg-success position-relative">
+                        <i class="bi bi-person-circle"></i>
+                        <div class="badge-stat-content">
+                            <div class="badge-stat-number">{{ online_users|default:0 }}</div>
+                            <div class="badge-stat-label">ออนไลน์ตอนนี้</div>
+                        </div>
+                        <span class="online-pulse"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Main Content Column -->
+        <div class="col-lg-8">
+            <div class="vstack gap-4">
+                
+                <!-- Policy Board Section -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="h4 mb-4">
+                            <i class="bi bi-graph-up-arrow text-primary"></i>
+                            คะแนนความพึงพอใจ 9 ด้าน 9 ดี
+                        </h2>
+                        <div class="row g-3">
+                            {% for policy in policy_board_data %}
+                            <div class="col-xl-4 col-md-6">
+                                <div class="card shadow-sm h-100 border-0 {{ policy.bg_class }} card-clickable position-relative hover-lift">
+                                    <div class="card-body text-center p-3">
+                                        <i class="bi {{ policy.icon_class }} display-5 {{ policy.text_class }} mb-2"></i>
+                                        <h6 class="card-title fw-bold {{ policy.text_class }} mb-2">
+                                            {{ policy.name }}
+                                        </h6>
+                                        <div class="display-6 fw-bold 
+                                            {% if policy.score > 0.5 %} text-success 
+                                            {% elif policy.score < -0.5 %} text-danger 
+                                            {% else %} text-muted {% endif %}">
+                                            
+                                            {% if policy.score > 0.5 %}
+                                                <i class="bi bi-emoji-smile-fill"></i>
+                                            {% elif policy.score < -0.5 %}
+                                                <i class="bi bi-emoji-frown-fill"></i>
+                                            {% else %}
+                                                <i class="bi bi-emoji-neutral-fill"></i>
+                                            {% endif %}
+                                            
+                                            {{ policy.score|floatformat:2 }}
+                                        </div>
+                                        <p class="{{ policy.text_class }} mb-0 opacity-75 small">คะแนนอารมณ์เฉลี่ย</p>
+                                        
+                                        <a href="{% url 'policy_list' policy_name=policy.name %}" 
+                                           class="stretched-link"></a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Row -->
+                <div class="row g-3">
+                    {% if user.is_authenticated and active_missions %}
+                        <div class="col-md-6">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-gradient-primary text-white border-0 p-3">
+                                    <h6 class="mb-0 fw-bold">
+                                        <i class="bi bi-activity"></i>
+                                        คะแนนความสุข (Happino Meter)
+                                    </h6>
+                                </div>
+                                <div class="card-body text-center d-flex flex-column justify-content-center
+                                    {% if overall_sentiment > 0.5 %} bg-success-subtle
+                                    {% elif overall_sentiment < -0.5 %} bg-danger-subtle
+                                    {% else %} bg-light {% endif %} p-4">
+                                    
+                                    <div class="display-3 fw-bold 
+                                        {% if overall_sentiment > 0.5 %} text-success
+                                        {% elif overall_sentiment < -0.5 %} text-danger
+                                        {% else %} text-muted {% endif %}">
+                                        {% if overall_sentiment > 0.5 %}
+                                            <i class="bi bi-emoji-smile-fill"></i>
+                                        {% elif overall_sentiment < -0.5 %}
+                                            <i class="bi bi-emoji-frown-fill"></i>
+                                        {% else %}
+                                            <i class="bi bi-emoji-neutral-fill"></i>
+                                        {% endif %}
+                                        {{ overall_sentiment|default:"N/A" }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-gradient-info text-white border-0 p-3">
+                                    <h6 class="mb-0 fw-bold">
+                                        <i class="bi bi-hash"></i>
+                                        กระแส: 5 คำค้น
+                                    </h6>
+                                </div>
+                                <div class="card-body d-flex flex-wrap gap-2 align-content-start">
+                                    {% for tag in top_hashtags %}
+                                    <a href="{% url 'tag_list' tag_name=tag.name %}" 
+                                       class="btn btn-sm btn-info position-relative text-white">
+                                        #{{ tag.name }}
+                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                            {{ tag.num_posts }}
+                                        </span>
+                                    </a>
+                                    {% empty %}
+                                    <p class="text-muted mb-0">ยังไม่มีข้อมูล</p>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                    {% else %}
+                        <div class="col-lg-4 col-md-6">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-gradient-primary text-white border-0 p-3">
+                                    <h6 class="mb-0 fw-bold">
+                                        <i class="bi bi-activity"></i>
+                                        คะแนนความสุข
+                                    </h6>
+                                </div>
+                                <div class="card-body text-center d-flex flex-column justify-content-center
+                                    {% if overall_sentiment > 0.5 %} bg-success-subtle
+                                    {% elif overall_sentiment < -0.5 %} bg-danger-subtle
+                                    {% else %} bg-light {% endif %} p-3">
+                                    
+                                    <div class="display-4 fw-bold 
+                                        {% if overall_sentiment > 0.5 %} text-success
+                                        {% elif overall_sentiment < -0.5 %} text-danger
+                                        {% else %} text-muted {% endif %}">
+                                        {% if overall_sentiment > 0.5 %}
+                                            <i class="bi bi-emoji-smile-fill"></i>
+                                        {% elif overall_sentiment < -0.5 %}
+                                            <i class="bi bi-emoji-frown-fill"></i>
+                                        {% else %}
+                                            <i class="bi bi-emoji-neutral-fill"></i>
+                                        {% endif %}
+                                        {{ overall_sentiment|default:"N/A" }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4 col-md-6">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-gradient-success text-white border-0 p-3">
+                                    <h6 class="mb-0 fw-bold">
+                                        <i class="bi bi-bar-chart-steps"></i>
+                                        โพลยอดนิยม
+                                    </h6>
+                                </div>
+                                {% if popular_poll %}
+                                <div class="card-body">
+                                    <h6 class="fw-bold">{{ popular_poll.title|truncatechars:50 }}</h6>
+                                    <small class="text-muted">
+                                        <i class="bi bi-person-fill"></i> {{ popular_poll.owner.username }}
+                                        | <i class="bi bi-people-fill"></i> {{ popular_poll.num_votes }} โหวต
+                                    </small>
+                                </div>
+                                <div class="card-footer bg-white border-0 text-center">
+                                    <a href="{% url 'poll_detail' pk=popular_poll.pk %}" class="btn btn-outline-success btn-sm">
+                                        ร่วมโหวต / ดูผล
+                                    </a>
+                                </div>
+                                {% else %}
+                                <div class="card-body d-flex align-items-center justify-content-center">
+                                    <p class="text-muted mb-0">ยังไม่มีโพลที่เปิดโหวต</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4 col-md-6">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-gradient-info text-white border-0 p-3">
+                                    <h6 class="mb-0 fw-bold">
+                                        <i class="bi bi-hash"></i>
+                                        กระแส: 5 คำค้น
+                                    </h6>
+                                </div>
+                                <div class="card-body d-flex flex-wrap gap-2 align-content-start">
+                                    {% for tag in top_hashtags %}
+                                    <a href="{% url 'tag_list' tag_name=tag.name %}" 
+                                       class="btn btn-sm btn-info position-relative text-white">
+                                        #{{ tag.name }}
+                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                            {{ tag.num_posts }}
+                                        </span>
+                                    </a>
+                                    {% empty %}
+                                    <p class="text-muted mb-0">ยังไม่มีข้อมูล</p>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Leaderboards -->
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-header bg-gradient-warning text-white border-0 p-3">
+                                <h6 class="mb-0 fw-bold">
+                                    <i class="bi bi-trophy-fill"></i>
+                                    ผู้ใช้งานยอดเยี่ยม
+                                </h6>
+                            </div>
+                            <ul class="list-group list-group-flush">
+                                {% for user in top_level_users %}
+                                <li class="list-group-item d-flex align-items-center">
+                                    <span class="badge bg-light text-dark me-2">{{ forloop.counter }}</span>
+                                    <a href="{% url 'profile' username=user.username %}" class="text-decoration-none d-flex align-items-center flex-grow-1" title="{{ user.username }}">
+                                        {% if user.profile_pic %}
+                                            <img src="{{ user.profile_pic.url }}" alt="{{ user.username }}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                                        {% else %}
+                                            <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=0d6efd&color=fff&size=32" alt="{{ user.username }}" class="rounded-circle me-2">
+                                        {% endif %}
+                                        <span class="{{ user|get_title_color }} fw-bold text-truncate" style="max-width: 150px;">
+                                            <i class="bi {{ user|get_title_icon }}"></i>
+                                            {{ user.username }}
+                                        </span>
+                                    </a>
+                                    <span class="ms-auto badge bg-warning text-dark">{{ user.points }} แต้ม</span>
+                                </li>
+                                {% empty %}
+                                <li class="list-group-item text-muted text-center">ยังไม่มีข้อมูล</li>
+                                {% endfor %}
+                            </ul>
+                            <div class="card-footer bg-white border-0 text-center">
+                                <a href="{% url 'leaderboard' %}" class="btn btn-outline-warning btn-sm">
+                                    ดูอันดับทั้งหมด <i class="bi bi-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-header bg-gradient-danger text-white border-0 p-3">
+                                <h6 class="mb-0 fw-bold">
+                                    <i class="bi bi-person-hearts"></i>
+                                    ผู้ติดตามสูงสุด
+                                </h6>
+                            </div>
+                            <ul class="list-group list-group-flush">
+                                {% for user in top_followed_users %}
+                                <li class="list-group-item d-flex align-items-center">
+                                    <span class="badge bg-light text-dark me-2">{{ forloop.counter }}</span>
+                                    <a href="{% url 'profile' username=user.username %}" class="text-decoration-none d-flex align-items-center flex-grow-1" title="{{ user.username }}">
+                                        {% if user.profile_pic %}
+                                            <img src="{{ user.profile_pic.url }}" alt="{{ user.username }}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                                        {% else %}
+                                            <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=dc3545&color=fff&size=32" alt="{{ user.username }}" class="rounded-circle me-2">
+                                        {% endif %}
+                                        <span class="{{ user|get_title_color }} fw-bold text-truncate" style="max-width: 150px;">
+                                            <i class="bi {{ user|get_title_icon }}"></i>
+                                            {{ user.username }}
+                                        </span>
+                                    </a>
+                                    <span class="ms-auto badge bg-danger">{{ user.num_followers }} คน</span>
+                                </li>
+                                {% empty %}
+                                <li class="list-group-item text-muted text-center">ยังไม่มีข้อมูล</li>
+                                {% endfor %}
+                            </ul>
+                            <div class="card-footer bg-white border-0 text-center">
+                                <a href="{% url 'follower_ranking' %}" class="btn btn-outline-danger btn-sm">
+                                    ดูอันดับทั้งหมด <i class="bi bi-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- District Rankings -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                            <h2 class="h4 mb-0">
+                                <i class="bi bi-bar-chart-fill text-success"></i>
+                                จัดอันดับความพึงพอใจรายเขต
+                            </h2>
+                            <a href="{% url 'district_ranking' %}" class="btn btn-outline-primary btn-sm">
+                                ดูทั้งหมด <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                        
+                        <div class="row g-3">
+                            <div class="col-lg-6">
+                                <div class="card border-success border-2 h-100">
+                                    <div class="card-header bg-success text-white border-0">
+                                        <h6 class="mb-0 fw-bold">🥇 5 เขตที่พึงพอใจสูงสุด</h6>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover mb-0 align-middle">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th scope="col" class="text-center" style="width: 60px;">อันดับ</th>
+                                                    <th scope="col">เขตพื้นที่</th>
+                                                    <th scope="col" class="text-end">คะแนน</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for district in happiest_5_districts %}
+                                                <tr>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-success">{{ forloop.counter }}</span>
+                                                    </td>
+                                                    <td>
+                                                        <a href="{% url 'district_list' district_name=district.district %}" class="text-decoration-none fw-semibold">
+                                                            {{ district.district }}
+                                                        </a>
+                                                    </td>
+                                                    <td class="text-end fw-bold text-success">
+                                                        {{ district.avg_sentiment|floatformat:2 }}
+                                                    </td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr>
+                                                    <td colspan="3" class="text-center p-4 text-muted">
+                                                        ยังไม่มีข้อมูล
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-lg-6">
+                                <div class="card border-danger border-2 h-100">
+                                    <div class="card-header bg-danger text-white border-0">
+                                        <h6 class="mb-0 fw-bold">😔 5 เขตที่ต้องการการดูแล</h6>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover mb-0 align-middle">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th scope="col" class="text-center" style="width: 60px;">อันดับ</th>
+                                                    <th scope="col">เขตพื้นที่</th>
+                                                    <th scope="col" class="text-end">คะแนน</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for district in unhappiest_5_districts %}
+                                                <tr>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-danger">{{ forloop.counter }}</span>
+                                                    </td>
+                                                    <td>
+                                                        <a href="{% url 'district_list' district_name=district.district %}" class="text-decoration-none fw-semibold">
+                                                            {{ district.district }}
+                                                        </a>
+                                                    </td>
+                                                    <td class="text-end fw-bold text-danger">
+                                                        {{ district.avg_sentiment|floatformat:2 }}
+                                                    </td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr>
+                                                    <td colspan="3" class="text-center p-4 text-muted">
+                                                        ยังไม่มีข้อมูล
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Filter -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="h4 mb-4">
+                            <i class="bi bi-filter-circle-fill text-primary"></i>
+                            กรองกระทู้ตามสถานะ
+                        </h2>
+                        <div class="row g-3">
+                            <div class="col-lg-4 col-md-6">
+                                <a href="{% url 'post_status_list' status_type='all' %}" class="text-decoration-none">
+                                    <div class="card card-clickable shadow-sm border-primary border-2 h-100 hover-lift">
+                                        <div class="card-body text-center text-primary p-4">
+                                            <i class="bi bi-file-earmark-text-fill display-4"></i>
+                                            <h5 class="fw-bold mt-3">เรื่องทั้งหมด</h5>
+                                            <p class="display-6 mb-0">{{ total_posts }}</p>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <a href="{% url 'post_status_list' status_type='progress' %}" class="text-decoration-none">
+                                    <div class="card card-clickable shadow-sm border-warning border-2 h-100 hover-lift">
+                                        <div class="card-body text-center text-warning p-4">
+                                            <i class="bi bi-gear-fill display-4"></i>
+                                            <h5 class="fw-bold mt-3">กำลังดำเนินการ</h5>
+                                            <p class="display-6 mb-0">{{ progress_count }}</p>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <a href="{% url 'post_status_list' status_type='resolved' %}" class="text-decoration-none">
+                                    <div class="card card-clickable shadow-sm border-success border-2 h-100 hover-lift">
+                                        <div class="card-body text-center text-success p-4">
+                                            <i class="bi bi-check-circle-fill display-4"></i>
+                                            <h5 class="fw-bold mt-3">แก้ไขสำเร็จ</h5>
+                                            <p class="display-6 mb-0">{{ resolved_count }}</p>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Community Feed -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="h4 mb-4">
+                            <i class="bi bi-chat-square-text-fill text-primary"></i>
+                            กระทู้ทั้งหมด (Community Feed)
+                        </h2>
+
+                        {% for post in posts %}
+                        <div class="card shadow-sm mb-3 hover-lift border-0">
+                            <div class="row g-0">
+                                {% if post.image %}
+                                <div class="col-lg-3 col-md-4">
+                                    <img src="{{ post.image.url }}" 
+                                         class="img-fluid rounded-start h-100" 
+                                         alt="{{ post.title }}" 
+                                         style="object-fit: cover; min-height: 200px;">
+                                </div>
+                                {% endif %}
+
+                                <div class="{% if post.image %}col-lg-9 col-md-8{% else %}col-12{% endif %}">
+                                    <div class="card-body p-4">
+                                        <div class="mb-2">
+                                            {% if post.status == 'open' %}
+                                                <span class="badge bg-primary">
+                                                    <i class="bi bi-folder2-open"></i> {{ post.get_status_display }}
+                                                </span>
+                                            {% elif post.status == 'progress' %}
+                                                <span class="badge bg-warning text-dark">
+                                                    <i class="bi bi-gear-fill"></i> {{ post.get_status_display }}
+                                                </span>
+                                            {% elif post.status == 'resolved' %}
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-check-circle-fill"></i> {{ post.get_status_display }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">
+                                                    <i class="bi bi-x-circle-fill"></i> {{ post.get_status_display }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <h5 class="card-title mb-3">{{ post.title }}</h5>
+                                        <p class="card-text text-muted">{{ post.content|truncatewords:50 }}</p>
+                                        
+                                        <hr class="my-3">
+                                        
+                                        <div class="d-flex flex-wrap gap-3 mb-3 small text-muted">
+                                            <span>
+                                                <i class="bi bi-person-fill"></i> 
+                                                <a href="{% url 'profile' username=post.owner.username %}" 
+                                                   class="text-decoration-none {{ post.owner|get_title_color }} fw-bold">
+                                                    <i class="bi {{ post.owner|get_title_icon }}"></i>
+                                                    {{ post.owner.username }}
+                                                </a>
+                                            </span>
+                                            <span>
+                                                <i class="bi bi-geo-alt-fill text-danger"></i>
+                                                <strong>{{ post.district|default_if_none:"ไม่ระบุเขต" }}</strong>
+                                            </span>
+                                            <span>
+                                                <i class="bi bi-clock-fill"></i>
+                                                {{ post.created_at|date:"d M Y H:i" }}
+                                            </span>
+                                        </div>
+
+                                        <a href="{% url 'post_detail' pk=post.pk %}" class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-chat-dots-fill"></i> อ่านต่อ ({{ post.comments.count }} ความคิดเห็น)
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="alert alert-info border-0" role="alert">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            ยังไม่มีโพสต์ในระบบ BMA Voice
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            {% if user.is_authenticated and active_missions %}
+            <div class="sticky-top" style="top: 1rem;">
+                <div class="card shadow-sm border-0 border-warning border-start border-4">
+                    <div class="card-header bg-gradient-warning text-white border-0 p-3">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-star-fill"></i>
+                            ภารกิจประจำวัน
+                        </h6>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        {% for mission in active_missions|slice:":3" %}
+                        <li class="list-group-item">
+                            <div class="fw-semibold mb-2">{{ mission.mission.title }}</div>
+                            {% if mission.is_completed %}
+                            <div class="alert alert-success py-2 mb-0">
+                                <i class="bi bi-check-circle-fill"></i> 
+                                <strong>สำเร็จ!</strong> +{{ mission.mission.bonus_points }} แต้ม
+                            </div>
+                            {% else %}
+                                                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" 
+                                     role="progressbar" 
+                                     style="width: {% widthratio mission.current_progress mission.mission.goal_count 100 %}%;">
+                                    <small class="fw-semibold">{{ mission.current_progress }}/{{ mission.mission.goal_count }}</small>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<style>
+    /* Logo Animation */
+    .logo-image {
+        transition: transform 0.3s ease;
+    }
+    
+    .logo-image:hover {
+        transform: scale(1.05);
+    }
+
+    /* Member Stats Badges */
+    .badge-stat {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 20px;
+        border-radius: 12px;
+        color: white;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .badge-stat:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    
+    .badge-stat i {
+        font-size: 2rem;
+        opacity: 0.9;
+    }
+    
+    .badge-stat-content {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .badge-stat-number {
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+    
+    .badge-stat-label {
+        font-size: 0.75rem;
+        opacity: 0.9;
+        font-weight: 500;
+    }
+    
+    /* Online Pulse Animation */
+    .online-pulse {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 12px;
+        height: 12px;
+        background-color: #fff;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+        }
+    }
+
+    /* Gradient Backgrounds */
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .bg-gradient-success {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+    
+    .bg-gradient-info {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    
+    .bg-gradient-warning {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+    
+    .bg-gradient-danger {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    /* Card Hover Effects */
+    .card-clickable {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .card-clickable:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+    
+    .hover-lift {
+        transition: all 0.3s ease;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+    }
+
+    /* Smooth Animations */
+    .card {
+        animation: fadeInUp 0.5s ease-out;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Badge Enhancements */
+    .badge {
+        font-weight: 500;
+        padding: 0.4em 0.8em;
+    }
+
+    /* Table Hover */
+    .table-hover tbody tr {
+        transition: background-color 0.2s ease;
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: rgba(0,0,0,0.02);
+    }
+
+    /* Progress Bar Enhancement */
+    .progress {
+        border-radius: 10px;
+        overflow: hidden;
+        background-color: #e9ecef;
+    }
+    
+    .progress-bar {
+        transition: width 0.6s ease;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 991.98px) {
+        .sticky-top {
+            position: relative !important;
+        }
+        
+        .logo-image {
+            height: 50px !important;
+        }
+        
+        .badge-stat {
+            padding: 10px 15px;
+        }
+        
+        .badge-stat i {
+            font-size: 1.5rem;
+        }
+        
+        .badge-stat-number {
+            font-size: 1.2rem;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .logo-image {
+            height: 40px !important;
+        }
+        
+        .display-3 {
+            font-size: 2.5rem;
+        }
+        
+        .display-4 {
+            font-size: 2rem;
+        }
+        
+        .badge-stat {
+            padding: 8px 12px;
+            flex: 1;
+            min-width: 140px;
+        }
+        
+        .badge-stat i {
+            font-size: 1.3rem;
+        }
+        
+        .badge-stat-number {
+            font-size: 1.1rem;
+        }
+        
+        .badge-stat-label {
+            font-size: 0.7rem;
+        }
+    }
+
+    /* List Group Items */
+    .list-group-item {
+        border-left: 3px solid transparent;
+        transition: all 0.2s ease;
+    }
+    
+    .list-group-item:hover {
+        border-left-color: var(--bs-primary);
+        background-color: rgba(0,0,0,0.02);
+    }
+
+    /* Button Enhancements */
+    .btn {
+        transition: all 0.2s ease;
+        font-weight: 500;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    /* Card Headers */
+    .card-header {
+        font-weight: 600;
+    }
+
+    /* Smooth Scrolling */
+    html {
+        scroll-behavior: smooth;
+    }
+</style>
+
+{% endblock %}

@@ -1,0 +1,237 @@
+{% extends 'base.html' %} 
+{% load bma_voice_tags %} 
+
+{% block content %}
+<div class="container mt-4 mb-5">
+    <div class="row g-4">
+        
+        <!-- Profile Sidebar -->
+        <div class="col-lg-4 col-md-5">
+            <div class="card shadow-sm border-0 sticky-top" style="top: 20px;">
+                <div class="card-body text-center p-4">
+                    <!-- Profile Picture -->
+                    <div class="position-relative d-inline-block mb-3">
+                        {% if profile_user.profile_pic %}
+                            <img src="{{ profile_user.profile_pic.url }}" 
+                                 alt="{{ profile_user.username }}" 
+                                 class="img-fluid rounded-circle shadow" 
+                                 style="width: 150px; height: 150px; object-fit: cover; border: 4px solid #f8f9fa;">
+                        {% else %}
+                            <img src="https://ui-avatars.com/api/?name={{ profile_user.username }}&background=0d6efd&color=fff&size=150&bold=true" 
+                                 alt="{{ profile_user.username }}" 
+                                 class="img-fluid rounded-circle shadow"
+                                 style="border: 4px solid #f8f9fa;">
+                        {% endif %}
+                        <!-- Online Status Badge -->
+                        <span class="position-absolute bottom-0 end-0 translate-middle-x badge rounded-pill bg-success" 
+                              style="padding: 8px; border: 3px solid white;">
+                            <span class="visually-hidden">Online</span>
+                        </span>
+                    </div>
+
+                    <!-- User Name & Title -->
+                    <h3 class="card-title mb-1 {{ profile_user|get_title_color }}">
+                        <i class="bi {{ profile_user|get_title_icon }}"></i>
+                        {{ profile_user.full_name|default:profile_user.username }}
+                    </h3>
+                    <p class="text-muted mb-2">
+                        @{{ profile_user.username }}
+                    </p>
+                    <span class="badge bg-primary mb-3">{{ profile_user.title }}</span>
+
+                    <hr class="my-3">
+
+                    <!-- Stats Grid -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-4">
+                            <div class="p-2 bg-light rounded">
+                                <div class="h4 mb-0 text-primary">{{ profile_user.level }}</div>
+                                <div class="text-muted small">
+                                    <i class="bi bi-star-fill text-warning"></i> เลเวล
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 bg-light rounded">
+                                <div class="h4 mb-0 text-success">{{ profile_user.points }}</div>
+                                <div class="text-muted small">
+                                    <i class="bi bi-award-fill text-warning"></i> คะแนน
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 bg-light rounded">
+                                <div class="h4 mb-0 text-info">{{ user_posts.count }}</div>
+                                <div class="text-muted small">
+                                    <i class="bi bi-journal-text text-primary"></i> โพสต์
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Followers Stats -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded">
+                                <div class="h5 mb-0">{{ profile_user.followers.count }}</div>
+                                <div class="text-muted small">
+                                    <i class="bi bi-people-fill"></i> ผู้ติดตาม
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded">
+                                <div class="h5 mb-0">{{ profile_user.following.count }}</div>
+                                <div class="text-muted small">
+                                    <i class="bi bi-person-check-fill"></i> กำลังติดตาม
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <!-- Contact Info -->
+                    <div class="text-start mb-3">
+                        <p class="mb-2">
+                            <i class="bi bi-envelope-fill text-primary"></i> 
+                            <small>{{ profile_user.email }}</small>
+                        </p>
+                        <p class="mb-2">
+                            <i class="bi bi-geo-alt-fill text-danger"></i> 
+                            <small>{{ profile_user.address|default:"ไม่ระบุ" }}</small>
+                        </p>
+                        <p class="mb-0">
+                            <i class="bi bi-telephone-fill text-success"></i> 
+                            <small>{{ profile_user.phone|default:"ไม่ระบุ" }}</small>
+                        </p>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    {% if user == profile_user %}
+                        <a href="{% url 'profile_edit' %}" class="btn btn-primary w-100 shadow-sm">
+                            <i class="bi bi-pencil-fill"></i> แก้ไขโปรไฟล์
+                        </a>
+                    {% elif user.is_authenticated %}
+                        {% if is_following %}
+                            <form action="{% url 'toggle_follow' profile_user.username %}" method="POST" class="d-grid">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger shadow-sm">
+                                    <i class="bi bi-person-dash-fill"></i> เลิกติดตาม
+                                </button>
+                            </form>
+                        {% else %}
+                            <form action="{% url 'toggle_follow' profile_user.username %}" method="POST" class="d-grid">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success shadow-sm">
+                                    <i class="bi bi-person-plus-fill"></i> ติดตาม
+                                </button>
+                            </form>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Posts Section -->
+        <div class="col-lg-8 col-md-7">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0">
+                    <i class="bi bi-journal-bookmark-fill text-primary"></i>
+                    โพสต์ทั้งหมด
+                </h2>
+                <span class="badge bg-secondary">{{ user_posts.count }} โพสต์</span>
+            </div>
+            
+            <!-- Posts List -->
+            {% for post in user_posts %}
+                <div class="card shadow-sm border-0 mb-3 hover-lift">
+                    <div class="card-body p-4">
+                        <!-- Post Header -->
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h4 class="card-title mb-1">
+                                    <i class="bi bi-file-text text-primary"></i>
+                                    {{ post.title }}
+                                </h4>
+                                <small class="text-muted">
+                                    <i class="bi bi-clock-fill"></i>
+                                    {{ post.created_at|date:"d M Y H:i" }}
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <!-- Post Content -->
+                        <p class="card-text text-secondary mb-3">
+                            {{ post.content|truncatewords:30 }}
+                        </p>
+                        
+                        <!-- Post Footer -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{% url 'post_detail' pk=post.pk %}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-chat-dots-fill"></i> อ่านต่อ & แสดงความคิดเห็น
+                            </a>
+                            
+                            <!-- Post Stats -->
+                            <div class="text-muted small">
+                                <span class="me-3">
+                                    <i class="bi bi-heart-fill text-danger"></i> 
+                                    {{ post.likes.count|default:0 }}
+                                </span>
+                                <span>
+                                    <i class="bi bi-chat-fill text-primary"></i> 
+                                    {{ post.comments.count|default:0 }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center p-5">
+                        <i class="bi bi-inbox display-1 text-muted mb-3"></i>
+                        <h4 class="text-muted">ยังไม่มีโพสต์</h4>
+                        <p class="text-muted">@{{ profile_user.username }} ยังไม่ได้เขียนโพสต์ใดๆ</p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+    </div>
+</div>
+
+<style>
+    /* Hover effect for cards */
+    .hover-lift {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    /* Smooth transitions */
+    .btn {
+        transition: all 0.3s ease;
+    }
+    
+    /* Profile card sticky behavior */
+    @media (max-width: 991.98px) {
+        .sticky-top {
+            position: relative !important;
+        }
+    }
+    
+    /* Stats hover effect */
+    .bg-light {
+        transition: all 0.3s ease;
+    }
+    
+    .bg-light:hover {
+        background-color: #e9ecef !important;
+        transform: scale(1.05);
+    }
+</style>
+{% endblock %}

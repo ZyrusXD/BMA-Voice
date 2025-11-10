@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        
+        <div class="card shadow-sm mb-4"> <div class="card-header bg-white p-4">
+                <h2 class="mb-0">{{ poll.title }}</h2>
+                <p class="mb-0 text-muted small">
+                    โดย: {{ poll.owner.username }} |
+                    {% if poll.is_expired %}
+                        <span class="text-danger fw-bold">ปิดโหวตแล้ว</span> (เมื่อ {{ poll.end_date|date:"d M Y" }})
+                    {% else %}
+                        <span class="text-success fw-bold">กำลังเปิดโหวต</span> (ถึง {{ poll.end_date|date:"d M Y H:i" }})
+                    {% endif %}
+                </p>
+            </div>
+
+            <div class="card-body p-4">
+                
+                {% if show_results %}
+                    <h5 class="mb-3">ผลการโหวต ({{ total_votes }} โหวต)</h5>
+                    
+                    {% for choice in choices %}
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between mb-1">
+                                <strong>{{ choice.text }}</strong>
+                                <span>{{ choice.num_votes }} โหวต ({{ choice.percentage|floatformat:1 }}%)</span>
+                            </div>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar" 
+                                     role="progressbar" 
+                                     style="width: {{ choice.percentage }}%;" 
+                                     aria-valuenow="{{ choice.percentage }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    
+                {% else %}
+                    <form method="POST">
+                        {% csrf_token %}
+                        <fieldset class="mb-3">
+                            <legend class="h5">เลือกตัวเลือกของคุณ:</legend>
+                            {% for choice in choices %}
+                            <div class="form-check fs-5">
+                                <input class="form-check-input" type="radio" 
+                                       name="choice" id="choice{{ choice.pk }}" 
+                                       value="{{ choice.pk }}" 
+                                       {% if forloop.first %}checked{% endif %}>
+                                <label class="form-check-label" for="choice{{ choice.pk }}">
+                                    {{ choice.text }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </fieldset>
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <i class="bi bi-check-circle-fill"></i> โหวต
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+
+        
+        {% if user.is_authenticated %}
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white fs-5">
+                <i class="bi bi-chat-dots-fill"></i> แสดงความคิดเห็น
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="comment">
+                    
+                    <div class="mb-3">
+                        {{ comment_form.content }}
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send-fill"></i> ส่งความคิดเห็น
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fs-5">
+                <i class="bi bi-chat-text-fill"></i> 
+                ความคิดเห็นทั้งหมด ({{ comments.count }})
+            </div>
+            <div class="card-body">
+                {% for comment in comments %}
+                    <div class="border-bottom pb-3 mb-3">
+                        <p class="mb-1">
+                            <a href="{% url 'profile' username=comment.author.username %}" class="text-decoration-none fw-bold">
+                                {{ comment.author.username }}
+                            </a> (Level {{ comment.author.level }})
+                            <span class="text-muted small ms-2">{{ comment.created_at|date:"d M Y H:i" }}</span>
+                        </p>
+                        <p class="mb-0">
+                            {{ comment.content|linebreaksbr }}
+                        </p>
+                    </div>
+                {% empty %}
+                    <p class="text-muted">ยังไม่มีความคิดเห็น</p>
+                {% endfor %}
+            </div>
+        </div>
+        </div>
+</div>
+
+<script>
+    document.querySelectorAll('form textarea').forEach(el => {
+        el.classList.add('form-control');
+    });
+</script>
+{% endblock %}

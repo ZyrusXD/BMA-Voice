@@ -1,0 +1,98 @@
+{% extends "admin/change_list.html" %}
+{% load i18n %}
+
+{% block content_title %}
+    
+    {{ block.super }}
+
+    <div class="module" id="executive-dashboard">
+        <h2 style="margin-bottom: 12px;">📊 สรุปภาพรวมสำหรับผู้บริหาร (Strategy 7)</h2>
+        
+        <div class="row">
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <strong>สรุป 9 ด้าน (คะแนนอารมณ์)</strong>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        {% for item in policy_summary %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ item.policy_aspect }}
+                                <span class="badge 
+                                    {% if item.avg_sentiment > 0.5 %} bg-success 
+                                    {% elif item.avg_sentiment < -0.5 %} bg-danger
+                                    {% else %} bg-secondary {% endif %}">
+                                    {{ item.avg_sentiment|floatformat:2 }}
+                                </span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <strong>สรุป 5 เขตที่สุขที่สุด</strong>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        {% for item in district_summary_top5 %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ item.district }}
+                                <span class="badge bg-success">{{ item.avg_sentiment|floatformat:2 }}</span>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item">ไม่มีข้อมูล</li>
+                        {% endfor %}
+                    </ul>
+                    <hr style="margin: 0;">
+                    <div class="card-header">
+                        <strong>สรุป 5 เขตที่ต้องการการดูแลด่วน</strong>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        
+                        {% for item in district_summary_bottom5 %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ item.district }}
+                                <span class="badge bg-danger">{{ item.avg_sentiment|floatformat:2 }}</span>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item">ไม่มีข้อมูล</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <strong>สรุปสถานะเรื่อง (ทั้งหมด)</strong>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        {% for item in status_summary %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {% if item.status == 'open' %} 
+                                    <span class="fw-bold text-primary">รับเรื่องแล้ว</span>
+                                {% elif item.status == 'progress' %} 
+                                    <span class="fw-bold text-warning">กำลังดำเนินการ</span>
+                                {% elif item.status == 'resolved' %} 
+                                    <span class="fw-bold text-success">แก้ไขสำเร็จ</span>
+                                {% else %} 
+                                    <span class="fw-bold text-secondary">ปิดเรื่อง</span>
+                                {% endif %}
+                                <span class="badge bg-dark rounded-pill">{{ item.total }} เรื่อง</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </div>
+{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link href="https.cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+{% endblock %}

@@ -1,0 +1,489 @@
+{% extends 'base.html' %}
+{% load bma_voice_tags %} 
+
+{% block content %}
+<div class="container mt-4 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            
+            <!-- Main Post Card -->
+            <div class="card shadow border-0 mb-4">
+                
+                <!-- Post Header -->
+                <div class="card-header bg-gradient text-white p-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div class="flex-grow-1">
+                            <h1 class="card-title h2 mb-3 text-white">{{ post.title }}</h1>
+                            
+                            <!-- Status Badge -->
+                            <div class="mb-2">
+                                {% if post.status == 'open' %}
+                                    <span class="badge bg-primary fs-6 px-3 py-2">
+                                        <i class="bi bi-folder2-open"></i> {{ post.get_status_display }}
+                                    </span>
+                                {% elif post.status == 'progress' %}
+                                    <span class="badge bg-warning text-dark fs-6 px-3 py-2">
+                                        <i class="bi bi-gear-fill"></i> {{ post.get_status_display }}
+                                    </span>
+                                {% elif post.status == 'resolved' %}
+                                    <span class="badge bg-success fs-6 px-3 py-2">
+                                        <i class="bi bi-check-circle-fill"></i> {{ post.get_status_display }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary fs-6 px-3 py-2">
+                                        <i class="bi bi-x-circle-fill"></i> {{ post.get_status_display }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Meta Info -->
+                        <div class="text-white-50 small">
+                            <i class="bi bi-clock-fill"></i> {{ post.created_at|date:"d M Y H:i" }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body p-4">
+                    
+                    <!-- Author Profile Section -->
+                    <div class="d-flex align-items-start mb-4 p-3 bg-light rounded-3">
+                        <a href="{% url 'profile' username=post.owner.username %}" class="text-decoration-none">
+                            {% if post.owner.profile_pic %}
+                                <img src="{{ post.owner.profile_pic.url }}" 
+                                     alt="{{ post.owner.username }}" 
+                                     class="rounded-circle me-3" 
+                                     style="width: 60px; height: 60px; object-fit: cover; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                            {% else %}
+                                <img src="https://ui-avatars.com/api/?name={{ post.owner.username }}&background=667eea&color=fff&size=60&bold=true" 
+                                     alt="{{ post.owner.username }}" 
+                                     class="rounded-circle me-3"
+                                     style="border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                            {% endif %}
+                        </a>
+                        
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                                <div>
+                                    <h5 class="mb-1">
+                                        <a href="{% url 'profile' username=post.owner.username %}" 
+                                           class="text-decoration-none {{ post.owner|get_title_color }} fw-bold">
+                                            <i class="bi {{ post.owner|get_title_icon }}"></i>
+                                            {{ post.owner.full_name|default:post.owner.username }}
+                                        </a>
+                                    </h5>
+                                    <p class="mb-1 text-muted small">
+                                        @{{ post.owner.username }} • {{ post.owner.title }}
+                                    </p>
+                                    <div class="d-flex gap-3 text-muted small">
+                                        <span>
+                                            <i class="bi bi-star-fill text-warning"></i>
+                                            <strong>Level {{ post.owner.level }}</strong>
+                                        </span>
+                                        <span>
+                                            <i class="bi bi-people-fill text-primary"></i>
+                                            {{ post.owner.followers.count }} ผู้ติดตาม
+                                        </span>
+                                        <span>
+                                            <i class="bi bi-award-fill text-success"></i>
+                                            {{ post.owner.points }} คะแนน
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Follow Button -->
+                                {% if user.is_authenticated and user != post.owner %}
+                                    {% if is_following %}
+                                        <form action="{% url 'toggle_follow' post.owner.username %}" method="POST" class="m-0">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                <i class="bi bi-person-dash-fill"></i> เลิกติดตาม
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <form action="{% url 'toggle_follow' post.owner.username %}" method="POST" class="m-0">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                <i class="bi bi-person-plus-fill"></i> ติดตาม
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Location Info -->
+                    <div class="alert alert-info d-flex align-items-center mb-4" role="alert">
+                        <i class="bi bi-geo-alt-fill fs-4 me-3"></i>
+                        <div>
+                            <strong class="d-block">พื้นที่:</strong>
+                            {{ post.district|default_if_none:"ไม่ระบุเขต" }}
+                            {% if post.latitude and post.longitude %}
+                                <span class="text-muted small">
+                                    ({{ post.latitude }}, {{ post.longitude }})
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Post Image -->
+                    {% if post.image %}
+                        <div class="mb-4 text-center">
+                            <img src="{{ post.image.url }}" 
+                                 class="img-fluid rounded-3 shadow" 
+                                 alt="{{ post.title }}"
+                                 style="max-height: 500px; object-fit: cover;">
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Post Content -->
+                    <div class="post-content fs-5 mb-4 lh-lg">
+                        {{ post.content|linebreaksbr }}
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- Tags -->
+                    {% if post.tags.all %}
+                        <div class="mb-4">
+                            <h6 class="text-muted mb-3">
+                                <i class="bi bi-tags-fill"></i> แท็ก
+                            </h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for tag in post.tags.all %}
+                                    <a href="{% url 'tag_list' tag_name=tag.name %}" 
+                                       class="btn btn-outline-secondary btn-sm rounded-pill">
+                                        <i class="bi bi-hash"></i>{{ tag.name }}
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <hr class="my-4">
+                    {% endif %}
+
+                    <!-- Share Section -->
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-3">
+                            <i class="bi bi-share-fill"></i> แชร์เรื่องนี้
+                        </h6>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri }}" 
+                               target="_blank" 
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-facebook"></i> Facebook
+                            </a>
+                            <a href="https://twitter.com/intent/tweet?url={{ request.build_absolute_uri }}&text={{ post.title|urlencode }}" 
+                               target="_blank" 
+                               class="btn btn-outline-dark btn-sm">
+                                <i class="bi bi-twitter-x"></i> X
+                            </a>
+                            <a href="https://social-plugins.line.me/lineit/share?url={{ request.build_absolute_uri }}" 
+                               target="_blank" 
+                               class="btn btn-outline-success btn-sm">
+                                <i class="bi bi-line"></i> LINE
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reactions Footer -->
+                <div class="card-footer bg-white border-top p-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        
+                        <!-- Reaction Buttons -->
+                        {% if user.is_authenticated %}
+                            <div class="d-flex gap-2 flex-wrap">
+                                <form action="{% url 'add_reaction' post.id 'like' %}" method="POST" class="m-0 reaction-form">
+                                    {% csrf_token %}
+                                    <button type="submit" id="btn-react-like" data-reaction="like"
+                                            class="btn btn-sm {% if user_reaction.reaction_type == 'like' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                        <span class="fs-5">👍</span> Like
+                                    </button>
+                                </form>
+                                <form action="{% url 'add_reaction' post.id 'love' %}" method="POST" class="m-0 reaction-form">
+                                    {% csrf_token %}
+                                    <button type="submit" id="btn-react-love" data-reaction="love"
+                                            class="btn btn-sm {% if user_reaction.reaction_type == 'love' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                                        <span class="fs-5">❤️</span> Love
+                                    </button>
+                                </form>
+                                <form action="{% url 'add_reaction' post.id 'wow' %}" method="POST" class="m-0 reaction-form">
+                                    {% csrf_token %}
+                                    <button type="submit" id="btn-react-wow" data-reaction="wow"
+                                            class="btn btn-sm {% if user_reaction.reaction_type == 'wow' %}btn-warning text-dark{% else %}btn-outline-warning text-dark{% endif %}">
+                                        <span class="fs-5">😮</span> Wow
+                                    </button>
+                                </form>
+                                <form action="{% url 'add_reaction' post.id 'unlike' %}" method="POST" class="m-0 reaction-form">
+                                    {% csrf_token %}
+                                    <button type="submit" id="btn-react-unlike" data-reaction="unlike"
+                                            class="btn btn-sm {% if user_reaction.reaction_type == 'unlike' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+                                        <span class="fs-5">👎</span> Unlike
+                                    </button>
+                                </form>
+                                <form action="{% url 'add_reaction' post.id 'angry' %}" method="POST" class="m-0 reaction-form">
+                                    {% csrf_token %}
+                                    <button type="submit" id="btn-react-angry" data-reaction="angry"
+                                            class="btn btn-sm {% if user_reaction.reaction_type == 'angry' %}btn-dark{% else %}btn-outline-dark{% endif %}">
+                                        <span class="fs-5">😠</span> Angry
+                                    </button>
+                                </form>
+                            </div>
+                        {% else %}
+                            <div class="d-flex gap-2 flex-wrap">
+                                <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-sm btn-outline-primary">
+                                    <span class="fs-5">👍</span> Like
+                                </a>
+                                <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-sm btn-outline-danger">
+                                    <span class="fs-5">❤️</span> Love
+                                </a>
+                                <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-sm btn-outline-warning text-dark">
+                                    <span class="fs-5">😮</span> Wow
+                                </a>
+                                <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-sm btn-outline-secondary">
+                                    <span class="fs-5">👎</span> Unlike
+                                </a>
+                                <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-sm btn-outline-dark">
+                                    <span class="fs-5">😠</span> Angry
+                                </a>
+                            </div>
+                        {% endif %}
+
+                        <!-- Reaction Counts -->
+                        <div class="d-flex gap-3 text-muted">
+                            <span class="badge bg-light text-dark border">
+                                <span class="fs-6">👍</span> <span id="count-like" class="fw-bold">{{ total_reactions.like|default:0 }}</span>
+                            </span>
+                            <span class="badge bg-light text-dark border">
+                                <span class="fs-6">❤️</span> <span id="count-love" class="fw-bold">{{ total_reactions.love|default:0 }}</span>
+                            </span>
+                            <span class="badge bg-light text-dark border">
+                                <span class="fs-6">😮</span> <span id="count-wow" class="fw-bold">{{ total_reactions.wow|default:0 }}</span>
+                            </span>
+                            <span class="badge bg-light text-dark border">
+                                <span class="fs-6">👎</span> <span id="count-unlike" class="fw-bold">{{ total_reactions.unlike|default:0 }}</span>
+                            </span>
+                            <span class="badge bg-light text-dark border">
+                                <span class="fs-6">😠</span> <span id="count-angry" class="fw-bold">{{ total_reactions.angry|default:0 }}</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Management Tools -->
+                {% if user.is_staff or user == post.owner %}
+                <div class="card-footer bg-light border-top">
+                    <h6 class="text-muted mb-3">
+                        <i class="bi bi-tools"></i> เครื่องมือจัดการโพสต์
+                    </h6>
+                    <div class="d-flex gap-2 flex-wrap">
+                        
+                        {% if user.is_staff %}
+                        <form action="{% url 'change_status' post.pk 'progress' %}" method="POST" class="m-0">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-warning text-dark">
+                                <i class="bi bi-gear-fill"></i> กำลังดำเนินการ
+                            </button>
+                        </form>
+                        <form action="{% url 'change_status' post.pk 'resolved' %}" method="POST" class="m-0">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-success">
+                                <i class="bi bi-check-circle-fill"></i> แก้ไขสำเร็จ
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        {% if user == post.owner %}
+                        <a href="{% url 'post_edit' post.pk %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-pencil-fill"></i> แก้ไขโพสต์
+                        </a>
+                        <a href="{% url 'post_delete' post.pk %}" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash-fill"></i> ลบโพสต์
+                        </a>
+                        {% elif user.is_staff %}
+                        <a href="{% url 'post_delete' post.pk %}" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash-fill"></i> ลบโพสต์
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Comment Form -->
+            {% if user.is_authenticated %}
+            <div class="card shadow border-0 mb-4">
+                <div class="card-header bg-white border-bottom p-4">
+                    <h5 class="mb-0">
+                        <i class="bi bi-chat-dots-fill text-primary"></i> แสดงความคิดเห็น
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            {{ comment_form.content }}
+                        </div>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-send-fill"></i> ส่งความคิดเห็น
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Comments List -->
+            <div class="card shadow border-0">
+                <div class="card-header bg-white border-bottom p-4">
+                    <h5 class="mb-0">
+                        <i class="bi bi-chat-text-fill text-primary"></i> 
+                        ความคิดเห็นทั้งหมด 
+                        <span class="badge bg-primary">{{ comments.count }}</span>
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    {% for comment in comments %}
+                        <div class="d-flex align-items-start mb-4 pb-4 {% if not forloop.last %}border-bottom{% endif %}">
+                            <a href="{% url 'profile' username=comment.author.username %}">
+                                {% if comment.author.profile_pic %}
+                                    <img src="{{ comment.author.profile_pic.url }}" 
+                                         alt="{{ comment.author.username }}" 
+                                         class="rounded-circle me-3" 
+                                         style="width: 48px; height: 48px; object-fit: cover;">
+                                {% else %}
+                                    <img src="https://ui-avatars.com/api/?name={{ comment.author.username }}&background=random&size=48" 
+                                         alt="{{ comment.author.username }}" 
+                                         class="rounded-circle me-3">
+                                {% endif %}
+                            </a>
+                            
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <a href="{% url 'profile' username=comment.author.username %}" 
+                                               class="text-decoration-none {{ comment.author|get_title_color }} fw-bold">
+                                                <i class="bi {{ comment.author|get_title_icon }}"></i>
+                                                {{ comment.author.username }}
+                                            </a>
+                                            <span class="badge bg-light text-dark ms-2">Level {{ comment.author.level }}</span>
+                                        </h6>
+                                        <small class="text-muted">
+                                            <i class="bi bi-clock"></i> {{ comment.created_at|date:"d M Y H:i" }}
+                                        </small>
+                                    </div>
+                                </div>
+                                <p class="mb-0 lh-lg">
+                                    {{ comment.content|linebreaksbr }}
+                                </p>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-chat-left-text display-1 text-muted mb-3"></i>
+                            <p class="text-muted h5">ยังไม่มีความคิดเห็น</p>
+                            <p class="text-muted">เป็นคนแรกที่แสดงความคิดเห็น!</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    .post-content {
+        color: #2d3748;
+        line-height: 1.8;
+    }
+    
+    .card {
+        transition: box-shadow 0.3s ease;
+    }
+    
+    .btn {
+        transition: all 0.2s ease;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+    }
+    
+    .badge {
+        font-weight: 500;
+    }
+    
+    .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+</style>
+
+<script>
+    document.querySelectorAll('form textarea').forEach(el => {
+        el.classList.add('form-control');
+        el.style.minHeight = '120px';
+    });
+</script>
+
+{% if user.is_authenticated %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const csrfToken = document.querySelector('.reaction-form [name=csrfmiddlewaretoken]').value;
+        
+        document.querySelectorAll('.reaction-form').forEach(form => {
+            form.addEventListener('submit', function(event) {
+                event.preventDefault(); 
+                const formElement = event.target;
+                const url = formElement.action;
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken, 
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        document.getElementById('count-like').textContent = data.new_counts.like;
+                        document.getElementById('count-love').textContent = data.new_counts.love;
+                        document.getElementById('count-wow').textContent = data.new_counts.wow;
+                        document.getElementById('count-unlike').textContent = data.new_counts.unlike;
+                        document.getElementById('count-angry').textContent = data.new_counts.angry;
+                        updateButtonStyles(data.user_reaction_type);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            });
+        });
+
+        function updateButtonStyles(userReactionType) {
+            const styles = {
+                'like': ['btn-primary', 'btn-outline-primary'],
+                'love': ['btn-danger', 'btn-outline-danger'],
+                'wow': ['btn-warning text-dark', 'btn-outline-warning text-dark'],
+                'unlike': ['btn-secondary', 'btn-outline-secondary'],
+                'angry': ['btn-dark', 'btn-outline-dark']
+            };
+            document.querySelectorAll('.reaction-form button[data-reaction]').forEach(button => {
+                const reaction = button.dataset.reaction;
+                if (styles[reaction]) {
+                    const [activeClass, outlineClass] = styles[reaction];
+                    button.classList.remove(activeClass, outlineClass);
+                    
+                    if (reaction === userReactionType) {
+                        button.classList.add(activeClass);
+                    } else {
+                        button.classList.add(outlineClass);
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endif %}
+
+{% endblock %}

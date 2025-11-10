@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1 class="mb-4">
+    <i class="bi bi-map-fill text-danger"></i>
+    Heat Map (แผนที่ความร้อน)
+</h1>
+<p class="fs-5 text-muted">
+    แผนที่แสดงจุดที่มีการแจ้งปัญหาบ่อยที่สุด
+</p>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0" style="border-radius: 0.375rem; overflow: hidden;">
+        <div id="heatmap-div" style="height: 600px; width: 100%;"></div>
+        
+    </div>
+</div>
+
+{{ heat_data|json_script:"heat-data" }}
+
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        try {
+            // 1. ดึงข้อมูลพิกัดจาก Django (ที่ถูกแปลงเป็น JSON)
+            const heatData = JSON.parse(document.getElementById('heat-data').textContent);
+
+            // 2. พิกัดกลาง กทม.
+            const bkk_lat = 13.7563;
+            const bkk_lon = 100.5018;
+
+            // 3. สร้างแผนที่
+            // (เราซูมออกเล็กน้อย (11) เพื่อให้เห็นภาพรวม กทม.)
+            const map = L.map('heatmap-div').setView([bkk_lat, bkk_lon], 11);
+
+            // 4. เพิ่ม Layer แผนที่ (OpenStreetMap)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // 5. (สำคัญ) สร้าง Heat Layer
+            if (heatData && heatData.length > 0) {
+                const heatLayer = L.heatLayer(heatData, {
+                    radius: 25,     // รัศมีของจุดความร้อน
+                    blur: 15,       // ความเบลอ
+                    maxZoom: 18,    // ซูมสูงสุดที่จะแสดง
+                }).addTo(map);
+            } else {
+                console.warn("BMA Voice: No heatmap data found to display.");
+            }
+        } catch (e) {
+            console.error("BMA Voice: Error initializing heatmap:", e);
+        }
+    });
+</script>
+{% endblock %}

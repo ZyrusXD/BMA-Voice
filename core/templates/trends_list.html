@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        
+        <div class="text-center mb-4">
+            <h1 class="display-4 fw-bold">
+                <i class="bi {{ page_icon }}"></i>
+                {{ page_title }}
+            </h1>
+            <p class="fs-5 text-muted">
+                ตารางจัดอันดับโพสต์ทั้งหมด
+            </p>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0 align-middle">
+                        
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col" style="width: 10%;" class="text-center">อันดับ</th>
+                                <th scope="col" style="width: 70%;">หัวข้อโพสต์</th>
+                                <th scope="col" style="width: 20%;" class="text-end">{{ score_name }}</th>
+                            </tr>
+                        </thead>
+                        
+                        <tbody>
+                            {% for post in posts %}
+                            <tr>
+                                <td class="text-center fw-bold fs-5">
+                                    {% if forloop.counter == 1 %} 🥇
+                                    {% elif forloop.counter == 2 %} 🥈
+                                    {% elif forloop.counter == 3 %} 🥉
+                                    {% else %} {{ forloop.counter }}
+                                    {% endif %}
+                                </td>
+                                
+                                <td>
+                                    <a href="{% url 'post_detail' pk=post.pk %}" class="text-decoration-none text-dark fw-bold">
+                                        {{ post.title }}
+                                    </a>
+                                    <br>
+                                    <small class="text-muted">
+                                        โดย: {{ post.owner.username }}
+                                    </small>
+                                </td>
+                                
+                                <td class="text-end fw-bold fs-5">
+                                    {{ post.score }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center p-4 text-muted">
+                                    ยังไม่มีข้อมูล
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

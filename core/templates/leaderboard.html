@@ -1,0 +1,86 @@
+{% extends 'base.html' %} {% load bma_voice_tags %} {% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        
+        <div class="text-center mb-4">
+            <h1 class="display-4 fw-bold">
+                <i class="bi bi-trophy-fill text-warning"></i>
+                Leaderboard
+            </h1>
+            <p class="fs-5 text-muted">
+                ตารางจัดอันดับผู้ใช้งานที่มีส่วนร่วมสูงสุด (Top 10)
+            </p>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0 align-middle">
+                        
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col" style="width: 10%;" class="text-center">อันดับ</th>
+                                <th scope="col" style="width: 50%;">ผู้ใช้งาน</th>
+                                <th scope="col" style="width: 20%;" class="text-center">เลเวล</th>
+                                <th scope="col" style="width: 20%;" class="text-end">คะแนน (Points)</th>
+                            </tr>
+                        </thead>
+                        
+                        <tbody>
+                            {% for user in top_users %}
+                            <tr>
+                                <td class="text-center fw-bold fs-5">
+                                    {% if forloop.counter == 1 %} 🥇
+                                    {% elif forloop.counter == 2 %} 🥈
+                                    {% elif forloop.counter == 3 %} 🥉
+                                    {% else %} {{ forloop.counter }}
+                                    {% endif %}
+                                </td>
+                                
+                                <td>
+                                    <a href="{% url 'profile' username=user.username %}" class="text-decoration-none d-flex align-items-center">
+                                        {% if user.profile_pic %}
+                                            <img src="{{ user.profile_pic.url }}" alt="{{ user.username }}" 
+                                                 class="rounded-circle me-3" 
+                                                 style="width: 45px; height: 45px; object-fit: cover;">
+                                        {% else %}
+                                            <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=0d6efd&color=fff&size=45" 
+                                                 alt="{{ user.username }}" 
+                                                 class="rounded-circle me-3">
+                                        {% endif %}
+                                        
+                                        <span class="{{ user|get_title_color }} fw-bold">
+                                            <i class="bi {{ user|get_title_icon }}"></i>
+                                            {{ user.username }}
+                                        </span>
+                                    </a>
+                                </td>
+                                
+                                <td class="text-center">
+                                    <span class="badge bg-primary rounded-pill fs-6">
+                                        Level {{ user.level }}
+                                    </span>
+                                </td>
+                                
+                                <td class="text-end fw-bold fs-5">
+                                    {{ user.points }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center p-4 text-muted">
+                                    ยังไม่มีข้อมูลผู้ใช้งาน
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

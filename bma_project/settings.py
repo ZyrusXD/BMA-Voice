@@ -128,8 +128,5 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
-    'condemnable-ed-unevangelically.ngrok-free.dev', 
-    
-# *** เพิ่ม URL สาธารณะของ Render ***
     'bma-voice.onrender.com',  
 ]

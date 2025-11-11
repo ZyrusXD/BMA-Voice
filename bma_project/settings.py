@@ -124,10 +124,15 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 # (Email Backend สำหรับ "ลืมรหัสผ่าน")
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
+
 ALLOWED_HOSTS = [
-    # ... Localhosts, ngrok ...
-    # **เพิ่มชื่อโฮสต์ของ Render ตรงนี้**
-    'dpg-d48p1c4hg0os738dk74g-a.singapore-postgres.render.com', # External Host Name
-    # และ URL สาธารณะของ Web Service ของคุณ เช่น
-    'https://bma-voice.onrender.com'
+    '127.0.0.1',
+    'localhost',
+    'condemnable-ed-unevangelically.ngrok-free.dev', 
+    
+    # *** เพิ่ม Host ใหม่ของ Render ตรงนี้ ***
+    'bma-voice.onrender.com',  # <--- เพิ่ม URL สาธารณะของ Render
+    
+    # หากคุณไม่ได้ตั้ง DEBUG=False อาจต้องเพิ่ม Hostname ภายในของ Render ด้วย
+    'bma-voice', # บางครั้งจำเป็นเมื่อรัน Gunicorn
 ]

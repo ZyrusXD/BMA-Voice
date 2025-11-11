@@ -2,7 +2,8 @@
 
 import os
 from pathlib import Path
-import ctypes 
+import ctypes
+import dj_database_url 
 
 # --- (ลบโค้ด "ไม้ตาย" ของ pythainlp ที่พัง) ---
 # (เราลบบรรทัดที่เกี่ยวกับ 'pythainlp' ทั้งหมดออกจากที่นี่)
@@ -71,19 +72,12 @@ WSGI_APPLICATION = 'bma_project.wsgi.application'
 
 
 # Database
+# เปลี่ยนการตั้งค่า Local เป็นการดึงค่าจาก DATABASE_URL ของ Render
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql', # (ใช้ตัวนี้)
-        'NAME': 'bma_voice_db',
-        'USER': 'postgres',
-        
-        # --- (นี่คือจุดที่แก้ไข 100%) ---
-        'PASSWORD': '123456', # (ใช้รหัสผ่านที่คุณบอกมา)
-        # --- (สิ้นสุดส่วนที่แก้ไข) ---
-        
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL'), # ดึงค่าจาก ENV VAR
+        conn_max_age=600 # เพื่อการเชื่อมต่อที่เสถียร
+    )
 }
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -131,8 +125,9 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 ALLOWED_HOSTS = [
-    '127.0.0.1',   # เพื่อให้เข้าผ่าน localhost ได้
-    'localhost',   # เพื่อให้เข้าผ่าน localhost ได้
-    'condemnable-ed-unevangelically.ngrok-free.dev', # <-- เพิ่ม URL ของ ngrok ตรงนี้!
-    # ถ้าคุณใช้เวอร์ชันของ ngrok ที่เป็น *.ngrok.io คุณอาจจะเพิ่ม '.ngrok.io' ด้วยก็ได้
+    '127.0.0.1',
+    'localhost',
+    'condemnable-ed-unevangelically.ngrok-free.dev', 
+    # **เพิ่ม URL ของ Render ตรงนี้** (แทนที่ด้วยชื่อแอปของคุณบน Render)
+    'BMA-Voice.onrender.com' 
 ]

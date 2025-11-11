@@ -130,9 +130,6 @@ ALLOWED_HOSTS = [
     'localhost',
     'condemnable-ed-unevangelically.ngrok-free.dev', 
     
-    # *** เพิ่ม Host ใหม่ของ Render ตรงนี้ ***
-    'bma-voice.onrender.com',  # <--- เพิ่ม URL สาธารณะของ Render
-    
-    # หากคุณไม่ได้ตั้ง DEBUG=False อาจต้องเพิ่ม Hostname ภายในของ Render ด้วย
-    'bma-voice', # บางครั้งจำเป็นเมื่อรัน Gunicorn
+# *** เพิ่ม URL สาธารณะของ Render ***
+    'bma-voice.onrender.com',  
 ]

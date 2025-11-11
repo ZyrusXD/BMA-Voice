@@ -1,4 +1,4 @@
-# core/views.py (ฉบับเต็ม - ปรับปรุงประสิทธิภาพด้วย Caching)
+# core/views.py (ฉบับเต็ม - ปรับปรุงประสิทธิภาพด้วย Caching และ Cron Task View)
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy, reverse
@@ -19,7 +19,7 @@ from .forms import (
     CommentForm, 
     ProfileUpdateForm,
     PollCreateForm,
-    SuperuserCreationForm # (รวม Import)
+    SuperuserCreationForm 
 )
 
 # Import Decorators & Mixins
@@ -29,7 +29,7 @@ from django.views.decorators.http import require_POST
 from django.contrib import messages 
 from django.contrib.auth import login as auth_login 
 from django.contrib.auth.forms import AuthenticationForm 
-from django.http import HttpResponseRedirect, JsonResponse, Http404
+from django.http import HttpResponseRedirect, JsonResponse, Http404, HttpResponse, HttpResponseForbidden
 
 # Import DB Utilities
 from django.db.models import Count, Q, Subquery, OuterRef, F, Value, Avg, Sum
@@ -37,6 +37,7 @@ from django.db.models.functions import Coalesce, Greatest
 from django.utils import timezone 
 from datetime import timedelta 
 import random
+import os # <--- เพิ่ม OS
 from django.core.exceptions import FieldError
 
 # Import Signals & Utils
@@ -46,6 +47,9 @@ import json
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
 from django.core.cache import cache # <--- Import Caching Framework
+from django.utils.decorators import method_decorator # <--- เพิ่มสำหรับ Cron Task
+from django.views.decorators.csrf import csrf_exempt # <--- เพิ่มสำหรับ Cron Task
+from django.core.management import call_command # <--- เพิ่มสำหรับ Cron Task
 
 User = get_user_model()
 
@@ -201,7 +205,7 @@ def get_dashboard_data():
         'online_users': online_users,
     }
     
-    # --- 5. บันทึกข้อมูลลง Cache 10 นาที ---
+    # --- บันทึกข้อมูลลง Cache 10 นาที ---
     cache.set(cache_key, cached_data, timeout=600) 
     
     return cached_data
@@ -210,7 +214,6 @@ def get_dashboard_data():
 # --- [ความปลอดภัย] View สำหรับสร้าง Superuser ---
 # ❗️ คำเตือน: หลังจากสร้าง Superuser คนแรกสำเร็จแล้ว
 # ❗️ คุณ "ต้อง" ลบ View นี้ และ Path ของมันใน urls.py ออก
-# ❗️ เพื่อป้องกันไม่ให้คนอื่นเข้ามาสร้าง Admin ซ้ำได้
 class InitialSuperuserView(View):
     def get(self, request):
         if User.objects.filter(is_superuser=True).exists():
@@ -248,7 +251,6 @@ def home_view(request):
         context['popular_poll'] = None
     
     # --- [ปรับปรุง] ภารกิจประจำวัน (ลบ Logic การสร้าง) ---
-    # (ย้าย Logic การสร้างภารกิจไปที่ Render Cron Job แล้ว)
     active_missions = None 
     if request.user.is_authenticated and not request.user.is_staff: 
         today = timezone.now().date()
@@ -584,7 +586,7 @@ def trends_list_view(request, trend_type):
     return render(request, 'trends_list.html', context)
 
 
-# --- 15. View "Heat Map" (Public) ---
+# --- 1F. View "Heat Map" (Public) ---
 def heatmap_view(request):
     posts_with_coords = Post.objects.filter(
         latitude__isnull=False, 
@@ -800,4 +802,42 @@ def toggle_follow_view(request, username):
         request.user.following.add(target_user)
     
     return redirect('profile', username=username)
-```
+
+
+# --- [ใหม่!] 26. View "RunCronTaskView" (สำหรับ Cron Job ภายนอก) ---
+# (นี่คือ View ที่จะรัน Task ภารกิจ, โพล, และลบเซสชันเก่า)
+
+# (ดึงค่า Secret Key จาก Environment Variable ที่คุณตั้งใน Render)
+CRON_JOB_SECRET = os.environ.get('CRON_JOB_SECRET') 
+
+@method_decorator(csrf_exempt, name='dispatch')
+class RunCronTaskView(View):
+    def post(self, request, task_type):
+        # 1. การตรวจสอบความปลอดภัย (สำคัญ!)
+        auth_header = request.headers.get('X-Auth-Token')
+        if not CRON_JOB_SECRET or auth_header != CRON_JOB_SECRET:
+             return HttpResponseForbidden("Invalid authorization token.")
+
+        # 2. การรัน Tasks
+        if task_type == 'daily_missions':
+            try:
+                tasks.assign_daily_missions()
+                return HttpResponse("Daily Missions assigned.", status=200)
+            except Exception as e:
+                return HttpResponse(f"Error running daily_missions: {e}", status=500)
+        
+        elif task_type == 'weekly_poll':
+            try:
+                tasks.auto_create_weekly_poll()
+                return HttpResponse("Weekly Poll created.", status=200)
+            except Exception as e:
+                return HttpResponse(f"Error running weekly_poll: {e}", status=500)
+
+        elif task_type == 'clearsessions':
+            try:
+                call_command('clearsessions') # <--- สั่งรัน clearsessions
+                return HttpResponse("Expired sessions cleared.", status=200)
+            except Exception as e:
+                return HttpResponse(f"Error clearing sessions: {e}", status=500)
+
+        return HttpResponseForbidden("Invalid task type.")

@@ -4,10 +4,9 @@ from django.urls import path
 from django.contrib.auth import views as auth_views 
 from . import views
 from django.urls import reverse_lazy
-from .views import InitialSuperuserView 
+from .views import InitialSuperuserView
 
 urlpatterns = [
-    path('initial-admin/', InitialSuperuserView.as_view(), name='initial_admin'),
     path('', views.home_view, name='home'),
     path('leaderboard/', views.leaderboard_view, name='leaderboard'),
     

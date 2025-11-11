@@ -1,6 +1,7 @@
 # core/urls.py (ฉบับเต็ม - เพิ่ม Follower Ranking URL)
 
 from django.urls import path
+from .views import RunCronTaskView
 from django.contrib.auth import views as auth_views 
 from . import views
 from django.urls import reverse_lazy
@@ -13,7 +14,7 @@ urlpatterns = [
     # --- (เพิ่ม URL นี้) ---
     path('followers/ranking/', views.follower_ranking_view, name='follower_ranking'),
     # --- (สิ้นสุดส่วนที่เพิ่ม) ---
-
+    path('tasks/run/<str:task_type>/', RunCronTaskView.as_view(), name='run_cron_task'),
     path('trends/<str:trend_type>/', views.trends_list_view, name='trends_list'),
     path('heatmap/', views.heatmap_view, name='heatmap'),
     path('tag/<str:tag_name>/', views.tag_list_view, name='tag_list'),

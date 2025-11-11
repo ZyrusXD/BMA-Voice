@@ -1,10 +1,10 @@
-# core/views.py (ฉบับเต็ม - แก้ไข Bug Dashboard และภารกิจ)
+# core/views.py (ฉบับเต็ม - ปรับปรุงประสิทธิภาพด้วย Caching)
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView
 from django.views.generic.edit import DeleteView, UpdateView
-from .forms import SuperuserCreationForm 
+from django.views import View
 
 # Import Models
 from .models import (
@@ -18,7 +18,8 @@ from .forms import (
     PostForm, 
     CommentForm, 
     ProfileUpdateForm,
-    PollCreateForm 
+    PollCreateForm,
+    SuperuserCreationForm # (รวม Import)
 )
 
 # Import Decorators & Mixins
@@ -28,10 +29,7 @@ from django.views.decorators.http import require_POST
 from django.contrib import messages 
 from django.contrib.auth import login as auth_login 
 from django.contrib.auth.forms import AuthenticationForm 
-from django.http import HttpResponseRedirect
-
-# Import AJAX/JSON
-from django.http import JsonResponse, Http404
+from django.http import HttpResponseRedirect, JsonResponse, Http404
 
 # Import DB Utilities
 from django.db.models import Count, Q, Subquery, OuterRef, F, Value, Avg, Sum
@@ -41,64 +39,54 @@ from datetime import timedelta
 import random
 from django.core.exceptions import FieldError
 
+# Import Signals & Utils
 from .signals import update_user_level 
 from . import geo_utils
 import json
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
-
-from django.contrib.auth import get_user_model
-from django.shortcuts import render, redirect
-from django.views import View
-from .forms import SuperuserCreationForm # <--- คุณต้องสร้างฟอร์มนี้
+from django.core.cache import cache # <--- Import Caching Framework
 
 User = get_user_model()
 
-class InitialSuperuserView(View):
-    def get(self, request):
-        if User.objects.filter(is_superuser=True).exists():
-            # ถ้ามี Admin อยู่แล้ว ให้ Redirect ไปหน้า Home เพื่อความปลอดภัย
-            return redirect('/')
 
-        form = SuperuserCreationForm()
-        return render(request, 'core/create_superuser.html', {'form': form})
+# --- [ใหม่!] ฟังก์ชันสำหรับคำนวณและ Cache ข้อมูล Dashboard ---
+def get_dashboard_data():
+    """
+    คำนวณข้อมูล Dashboard ที่หนักหน่วงทั้งหมด และเก็บใน Cache 10 นาที
+    เพื่อป้องกันการ Query ฐานข้อมูลซ้ำซ้อน
+    """
+    cache_key = 'dashboard_main_data'
+    cached_data = cache.get(cache_key)
+    
+    # ถ้ามีข้อมูลใน Cache ให้ใช้ข้อมูลนั้น
+    if cached_data is not None:
+        return cached_data
 
-    def post(self, request):
-        form = SuperuserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)
-            user.is_staff = True
-            user.is_superuser = True
-            user.save()
-            return redirect('/admin/')  # Redirect ไปหน้า Admin หลังจากสร้างสำเร็จ
-        return render(request, 'core/create_superuser.html', {'form': form})
-
-
-# --- 1. View หน้าแรก (แก้ไข: Logic สุ่มภารกิจ + แก้ไข Bug Context) ---
-def home_view(request):
+    # --- ถ้าไม่มี Cache ให้คำนวณใหม่ ---
     all_posts = Post.objects.all() 
     
-    # --- 1.1 Stats พื้นฐาน ---
+    # --- Stats พื้นฐาน ---
     total_posts = all_posts.count()
     progress_count = all_posts.filter(status='progress').count()
     resolved_count = all_posts.filter(status='resolved').count()
     
-    # --- 1.2 Dashboard นโยบาย 9 ด้าน ---
+    # --- Dashboard นโยบาย 9 ด้าน ---
     POLICY_ASPECTS = [choice[0] for choice in Post.POLICY_ASPECT_CHOICES if choice[0] != 'ไม่ระบุ']
     policy_sentiments = Post.objects.filter(
         policy_aspect__in=POLICY_ASPECTS
     ).values('policy_aspect').annotate(
         avg_sentiment=Avg('sentiment_score')
     ).order_by('policy_aspect')
-    policy_data = {item['policy_aspect']: item['avg_sentiment'] for item in policy_sentiments}
+    policy_data_map = {item['policy_aspect']: item['avg_sentiment'] for item in policy_sentiments}
     
     policy_board_data = []
     for aspect_name in POLICY_ASPECTS:
-        score = round(policy_data.get(aspect_name, 0), 2)
+        score = round(policy_data_map.get(aspect_name, 0), 2)
+        # (ย้าย Logic การสร้าง Icon/Color มาไว้ที่นี่)
         icon_class = "bi-question-circle"
         bg_class = "bg-light"
         text_class = "text-dark"
-        
         if aspect_name == 'เดินทางดี':
             icon_class = "bi-bicycle"
             bg_class = "bg-primary-subtle"
@@ -144,16 +132,16 @@ def home_view(request):
             'text_class': text_class,
         })
     
-    # --- 1.3 Hashtags ยอดนิยม ---
+    # --- Hashtags ยอดนิยม ---
     top_hashtags = Tag.objects.annotate(
         num_posts=Count('posts')
     ).filter(num_posts__gt=0).order_by('-num_posts')[:5] 
     
-    # --- 1.4 Sentiment Meter ภาพรวม ---
+    # --- Sentiment Meter ภาพรวม ---
     overall_sentiment = all_posts.aggregate(Avg('sentiment_score'))['sentiment_score__avg']
     overall_sentiment = round(overall_sentiment, 2) if overall_sentiment else 0.0
     
-    # --- 1.5 District Ranking ---
+    # --- District Ranking ---
     district_ranking_query = Post.objects.filter(
         district__isnull=False, 
         district__in=Post.objects.values('district')
@@ -163,10 +151,8 @@ def home_view(request):
     )
     happiest_5_districts = district_ranking_query.order_by('-avg_sentiment')[:5]
     unhappiest_5_districts = district_ranking_query.order_by('avg_sentiment')[:5]
-    happiest_district = happiest_5_districts.first()
-    unhappiest_district = unhappiest_5_districts.first()
     
-    # --- 1.6 Top Users (Level & Followers) ---
+    # --- Top Users ---
     top_level_users = (
         User.objects
         .filter(is_staff=False, is_superuser=False) 
@@ -182,94 +168,97 @@ def home_view(request):
         .all()[:5] 
     )
     
-    # --- 1.7 Popular Poll ---
-    popular_poll = Poll.objects.annotate(
+    # --- Popular Poll ---
+    popular_poll_obj = Poll.objects.annotate(
         num_votes=Count('votes')
     ).filter(
         end_date__gt=timezone.now()
     ).order_by('-num_votes').first()
+    popular_poll_id = popular_poll_obj.id if popular_poll_obj else None
 
-    # --- 1.8 ภารกิจประจำวัน (แก้ไข Logic!) ---
-    active_missions = None 
-    if request.user.is_authenticated and not request.user.is_staff: 
-        today = timezone.now().date()
-        
-        active_missions = UserMission.objects.filter(
-            user=request.user, date=today
-        ).order_by('is_completed')
-        
-        if not active_missions.exists():
-            yesterday = today - timedelta(days=1)
-            completed_yesterday = UserMission.objects.filter(
-                user=request.user, 
-                date=yesterday, 
-                is_completed=True
-            ).values_list('mission_id', flat=True)
-            
-            all_missions = list(Mission.objects.exclude(pk__in=completed_yesterday))
-            
-            if len(all_missions) < 5:
-                all_missions = list(Mission.objects.all()) 
-
-            num_to_sample = min(len(all_missions), 5)
-            if num_to_sample > 0:
-                # สุ่มจาก ID เพื่อป้องกัน IntegrityError
-                mission_ids = [m.id for m in all_missions]
-                random_mission_ids = random.sample(mission_ids, num_to_sample)
-                random_missions = Mission.objects.filter(pk__in=random_mission_ids)
-                
-                missions_to_create = []
-                for mission in random_missions:
-                    missions_to_create.append(
-                        UserMission(user=request.user, mission=mission, date=today)
-                    )
-                
-                try:
-                    UserMission.objects.bulk_create(missions_to_create)
-                except Exception as e:
-                    print(f"⚠️ ERROR [Mission Create]: {e}") 
-                    try:
-                        UserMission.objects.create(
-                            user=request.user, 
-                            mission=random_missions[0], 
-                            date=today
-                        )
-                    except Exception as e2:
-                         print(f"⚠️ ERROR [Mission Create Fallback]: {e2}")
-
-                active_missions = UserMission.objects.filter(
-                    user=request.user, 
-                    date=today
-                ).order_by('is_completed')
-    
-    # --- 1.9 สถิติผู้ใช้งาน ---
+    # --- สถิติผู้ใช้งาน (Query ที่ช้า จะถูก Cache) ---
     total_users = User.objects.count()
     online_users = Session.objects.filter(
         expire_date__gte=timezone.now()
     ).count()
     
-    # --- สร้าง Context ที่สมบูรณ์ (แก้ไข Bug!) ---
-    context = {
-        'posts': all_posts,
+    # --- สร้าง Context ที่จะถูก Cache ---
+    cached_data = {
         'total_posts': total_posts,
         'progress_count': progress_count,
         'resolved_count': resolved_count,
-        'policy_board_data': policy_board_data,  # ✅ ส่งข้อมูล 9 ด้าน
+        'policy_board_data': policy_board_data,
         'top_hashtags': top_hashtags,
         'overall_sentiment': overall_sentiment,
         'happiest_5_districts': happiest_5_districts,
         'unhappiest_5_districts': unhappiest_5_districts,
-        'happiest_district': happiest_district,
-        'unhappiest_district': unhappiest_district,
+        'happiest_district': happiest_5_districts.first(),
+        'unhappiest_district': unhappiest_5_districts.first(),
         'top_level_users': top_level_users, 
         'top_followed_users': top_followed_users, 
-        'popular_poll': popular_poll,
-        'active_missions': active_missions,  # ✅ ส่งข้อมูลภารกิจ
+        'popular_poll_id': popular_poll_id, # ส่งแค่ ID
         'total_users': total_users,
         'online_users': online_users,
     }
     
-    return render(request, 'home.html', context)  # ✅ Return เพียงครั้งเดียว
+    # --- 5. บันทึกข้อมูลลง Cache 10 นาที ---
+    cache.set(cache_key, cached_data, timeout=600) 
+    
+    return cached_data
+
+
+# --- [ความปลอดภัย] View สำหรับสร้าง Superuser ---
+# ❗️ คำเตือน: หลังจากสร้าง Superuser คนแรกสำเร็จแล้ว
+# ❗️ คุณ "ต้อง" ลบ View นี้ และ Path ของมันใน urls.py ออก
+# ❗️ เพื่อป้องกันไม่ให้คนอื่นเข้ามาสร้าง Admin ซ้ำได้
+class InitialSuperuserView(View):
+    def get(self, request):
+        if User.objects.filter(is_superuser=True).exists():
+            messages.warning(request, "Superuser already exists. This page is disabled.")
+            return redirect('/')
+        form = SuperuserCreationForm()
+        return render(request, 'core/create_superuser.html', {'form': form})
+    def post(self, request):
+        form = SuperuserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.is_staff = True
+            user.is_superuser = True
+            user.save()
+            return redirect('/admin/')
+        return render(request, 'core/create_superuser.html', {'form': form})
+
+
+# --- 1. View หน้าแรก (ปรับปรุง) ---
+def home_view(request):
+    
+    # --- [ปรับปรุง] ดึงข้อมูลจาก Cache ---
+    context = get_dashboard_data()
+    
+    # --- [ปรับปรุง] ดึงข้อมูลที่ไม่ต้อง Cache (Posts) ---
+    context['posts'] = Post.objects.all().order_by('-created_at')
+    
+    # --- [ปรับปรุง] ดึง Poll จาก ID ที่ Cache ไว้ ---
+    if context['popular_poll_id']:
+        try:
+            context['popular_poll'] = Poll.objects.get(id=context['popular_poll_id'])
+        except Poll.DoesNotExist:
+            context['popular_poll'] = None
+    else:
+        context['popular_poll'] = None
+    
+    # --- [ปรับปรุง] ภารกิจประจำวัน (ลบ Logic การสร้าง) ---
+    # (ย้าย Logic การสร้างภารกิจไปที่ Render Cron Job แล้ว)
+    active_missions = None 
+    if request.user.is_authenticated and not request.user.is_staff: 
+        today = timezone.now().date()
+        active_missions = UserMission.objects.filter(
+            user=request.user, date=today
+        ).order_by('is_completed').select_related('mission')
+    
+    context['active_missions'] = active_missions
+    
+    return render(request, 'home.html', context)
 
 
 # --- 2. View สมัครสมาชิก (Public) ---
@@ -780,43 +769,18 @@ def district_list_view(request, district_name):
     return render(request, 'district_list.html', context)
 
 
-# --- 24. View "API Dashboard Stats" (AJAX) ---
+# --- 24. View "API Dashboard Stats" (AJAX) (ปรับปรุง) ---
 def api_dashboard_stats(request):
-    all_posts = Post.objects.all() 
     
-    POLICY_ASPECTS = [choice[0] for choice in Post.POLICY_ASPECT_CHOICES if choice[0] != 'ไม่ระบุ']
-    policy_sentiments = Post.objects.filter(
-        policy_aspect__in=POLICY_ASPECTS
-    ).values('policy_aspect').annotate(
-        avg_sentiment=Avg('sentiment_score')
-    ).order_by('policy_aspect')
-    policy_data = {item['policy_aspect']: item['avg_sentiment'] for item in policy_sentiments}
+    # --- [ปรับปรุง] ดึงข้อมูลจาก Caching Utility ---
+    cached_data = get_dashboard_data()
     
-    policy_board_data = []
-    for aspect_name in POLICY_ASPECTS:
-        score = round(policy_data.get(aspect_name, 0), 2)
-        policy_board_data.append({
-            'name': aspect_name,
-            'score': score,
-        })
-        
-    overall_sentiment = all_posts.aggregate(Avg('sentiment_score'))['sentiment_score__avg']
-    overall_sentiment = round(overall_sentiment, 2) if overall_sentiment else 0.0
-
-    district_ranking_query = Post.objects.filter(
-        district__isnull=False, 
-        district__in=Post.objects.values('district')
-    ).values('district').annotate(
-        avg_sentiment=Avg('sentiment_score')
-    )
-    happiest_5_districts = district_ranking_query.order_by('-avg_sentiment')[:5]
-    unhappiest_5_districts = district_ranking_query.order_by('avg_sentiment')[:5]
-
+    # (เราต้องแปลง QuerySet ที่อยู่ใน Cache ให้เป็น List สำหรับ JSON)
     data_to_send = {
-        'policy_board_data': list(policy_board_data), 
-        'overall_sentiment': overall_sentiment,
-        'happiest_5_districts': list(happiest_5_districts), 
-        'unhappiest_5_districts': list(unhappiest_5_districts), 
+        'policy_board_data': cached_data['policy_board_data'],
+        'overall_sentiment': cached_data['overall_sentiment'],
+        'happiest_5_districts': list(cached_data['happiest_5_districts']), 
+        'unhappiest_5_districts': list(cached_data['unhappiest_5_districts']), 
     }
     return JsonResponse(data_to_send)
 
@@ -836,3 +800,4 @@ def toggle_follow_view(request, username):
         request.user.following.add(target_user)
     
     return redirect('profile', username=username)
+```

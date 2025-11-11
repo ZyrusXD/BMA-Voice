@@ -1,4 +1,4 @@
-# core/signals.py (ฉบับเต็ม - อัปเกรด Gamification 2.0)
+# core/signals.py (ฉบับเต็ม - Gamification 2.0)
 
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
@@ -199,7 +199,8 @@ def on_post_save(sender, instance, created, **kwargs):
                 sentiment_score=sentiment_score
             )
         except Exception as e:
-            print(f"⚠️ ERROR [Post Save Signal]: {e}")
+            # (ควรใช้ logging แทน print ใน Production)
+            print(f"⚠️ ERROR [Post Save Signal - NLP]: {e}")
 
 @receiver(post_delete, sender=Post)
 def on_post_delete(sender, instance, **kwargs):
@@ -217,7 +218,7 @@ def on_comment_save(sender, instance, created, **kwargs):
             sentiment_score = analyze_sentiment(instance.content)
             Comment.objects.filter(pk=instance.pk).update(sentiment_score=sentiment_score)
         except Exception as e:
-            print(f"⚠️ ERROR [Comment Save Signal]: {e}")
+            print(f"⚠️ ERROR [Comment Save Signal - NLP]: {e}")
 
 
 @receiver(post_delete, sender=Comment)

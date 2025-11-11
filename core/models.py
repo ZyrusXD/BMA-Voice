@@ -1,4 +1,4 @@
-# core/models.py (ฉบับเต็ม - เพิ่ม 'title')
+# core/models.py (ฉบับเต็ม - แก้ไขลบโมเดลที่ซ้ำซ้อน)
 
 from django.db import models
 from django.contrib.auth.models import AbstractUser
@@ -239,59 +239,5 @@ class UserMission(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.mission.title} ({self.date})"
 
-class UserActivityLog(models.Model):
-    """
-    (ข้อ 3) โมเดลสำหรับ "สมุดบัญชี" บันทึกแต้ม
-    เพื่อจำกัดการเก็บแต้มรายวัน (ป้องกันการปั๊ม)
-    """
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="activity_logs")
-    action_type = models.CharField(max_length=50) # เช่น 'create_post', 'poll_vote'
-    points_earned = models.IntegerField()
-    timestamp = models.DateTimeField(auto_now_add=True, db_index=True) # (ใส่ index เพื่อความเร็ว)
-
-    class Meta:
-        ordering = ['-timestamp']
-    
-    def __str__(self):
-        return f"{self.user.username} - {self.action_type} ({self.points_earned} pts)"
-
-class Mission(models.Model):
-    """
-    (ข้อ 5) โมเดล "คลังภารกิจ"
-    เช่น "คอมเมนต์ 3 ครั้ง", "โหวต 1 ครั้ง"
-    """
-    ACTION_CHOICES = (
-        ('create_post', 'สร้างโพสต์'),
-        ('create_comment', 'แสดงความคิดเห็น'),
-        ('poll_vote', 'โหวตโพล'),
-    )
-    
-    title = models.CharField(max_length=100, verbose_name="ชื่อภารกิจ")
-    description = models.CharField(max_length=255, verbose_name="คำอธิบาย")
-    action_type = models.CharField(max_length=50, choices=ACTION_CHOICES, verbose_name="ประเภทกิจกรรม")
-    goal_count = models.PositiveIntegerField(default=1, verbose_name="เป้าหมาย (จำนวนครั้ง)")
-    bonus_points = models.PositiveIntegerField(default=25, verbose_name="คะแนนโบนัส")
-    
-    def __str__(self):
-        return self.title
-
-class UserMission(models.Model):
-    """
-    (ข้อ 5) โมเดล "ภารกิจของผู้ใช้" (ที่สุ่มได้ในวันนั้น)
-    """
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="missions")
-    mission = models.ForeignKey(Mission, on_delete=models.CASCADE, related_name="user_missions")
-    date = models.DateField(default=timezone.now, db_index=True)
-    current_progress = models.PositiveIntegerField(default=0)
-    is_completed = models.BooleanField(default=False)
-    
-    class Meta:
-        ordering = ['-date']
-        # (บังคับ 1 ภารกิจ ต่อ 1 User ต่อ 1 วัน)
-        constraints = [
-            models.UniqueConstraint(fields=['user', 'date'], name='unique_mission_user_date')
-        ]
-        
-    def __str__(self):
-        return f"{self.user.username} - {self.mission.title} ({self.date})"
 # --- (สิ้นสุดส่วนที่เพิ่ม) ---
+# *** หมายเหตุ: โค้ดที่ซ้ำซ้อนด้านล่างนี้ถูกลบออกแล้ว ***

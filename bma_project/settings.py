@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'django.contrib.messages', # (ต้องมี)
     'django.contrib.staticfiles',
     'django_apscheduler',
+    'storages',
     'core', # (แอปของเรา)
     
     # (เครื่องมือ Phase 10: ปฏิทิน/ฟอร์ม)
@@ -128,3 +129,29 @@ ALLOWED_HOSTS = [
     'localhost',
     'bma-voice.onrender.com',  
 ]
+
+
+# --- การตั้งค่า Google Cloud Storage (GCS) ---
+
+# 1. กำหนดให้ GCS จัดการ Media Files ทั้งหมด
+DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
+
+# 2. ตั้งชื่อ Bucket ของคุณ
+GS_BUCKET_NAME = os.environ.get('bma-voice-media') # เช่น 'bma-voice-media'
+
+# 3. Path ภายใน Bucket (ถ้าต้องการ)
+GS_LOCATION = 'media' 
+
+# 4. ตั้งค่าให้ไฟล์ที่อัปโหลดสามารถเข้าถึงได้แบบสาธารณะ
+GS_FILE_OVERWRITE = False
+GS_DEFAULT_ACL = 'publicRead' 
+
+# 5. ตั้งค่าการเข้าถึง
+# GCS จะค้นหาไฟล์ key.json โดยอัตโนมัติจาก ENV VAR หรือ Path ที่คุณกำหนด
+# ถ้าคุณตั้งค่า GOOGLE_APPLICATION_CREDENTIALS ใน ENV VAR ไว้ GCS จะใช้ตัวนั้น
+
+# ...
+# Media Files (ต้องคงค่าเดิมไว้)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'mediafiles') 
+# ...

@@ -2,10 +2,17 @@
 
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import get_user_model
 # (อัปเดต Import)
 from .models import User, Post, Comment, Poll, PollChoice
 # (Import ปฏิทิน)
-from bootstrap_datepicker_plus.widgets import DateTimePickerInput 
+from bootstrap_datepicker_plus.widgets import DateTimePickerInput
+
+User = get_user_model()
+class SuperuserCreationForm(UserCreationForm):
+    class Meta:
+        model = User
+        fields = ('username', 'email') 
 
 # --- 1. ฟอร์มสมัครสมาชิก ---
 class CustomUserCreationForm(UserCreationForm):

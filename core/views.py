@@ -3,7 +3,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView
-from django.views.generic.edit import DeleteView, UpdateView 
+from django.views.generic.edit import DeleteView, UpdateView
+from .forms import SuperuserCreationForm 
 
 # Import Models
 from .models import (
@@ -46,7 +47,31 @@ import json
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
 
-User = get_user_model() 
+from django.contrib.auth import get_user_model
+from django.shortcuts import render, redirect
+from django.views import View
+from .forms import SuperuserCreationForm # <--- คุณต้องสร้างฟอร์มนี้
+
+User = get_user_model()
+
+class InitialSuperuserView(View):
+    def get(self, request):
+        if User.objects.filter(is_superuser=True).exists():
+            # ถ้ามี Admin อยู่แล้ว ให้ Redirect ไปหน้า Home เพื่อความปลอดภัย
+            return redirect('/')
+
+        form = SuperuserCreationForm()
+        return render(request, 'core/create_superuser.html', {'form': form})
+
+    def post(self, request):
+        form = SuperuserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.is_staff = True
+            user.is_superuser = True
+            user.save()
+            return redirect('/admin/')  # Redirect ไปหน้า Admin หลังจากสร้างสำเร็จ
+        return render(request, 'core/create_superuser.html', {'form': form})
 
 
 # --- 1. View หน้าแรก (แก้ไข: Logic สุ่มภารกิจ + แก้ไข Bug Context) ---

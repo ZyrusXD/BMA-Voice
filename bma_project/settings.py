@@ -76,8 +76,10 @@ WSGI_APPLICATION = 'bma_project.wsgi.application'
 # เปลี่ยนการตั้งค่า Local เป็นการดึงค่าจาก DATABASE_URL ของ Render
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.environ.get('postgresql://admin:bhPq4j47ybrg2UlRoKoWRTITleBDdxMl@dpg-d48p1c4hg0os738dk74g-a/bma_voice_db'), # ดึงค่าจาก ENV VAR
-        conn_max_age=600 # เพื่อการเชื่อมต่อที่เสถียร
+        # 1. ดึงค่าจาก ENV VAR ชื่อ 'DATABASE_URL' เป็นหลัก
+        # 2. ถ้าหาไม่เจอ ให้ใช้ค่า Fallback ที่เป็น SQLite (สำหรับ Local Dev)
+        default=os.environ.get('postgresql://admin:bhPq4j47ybrg2UlRoKoWRTITleBDdxMl@dpg-d48p1c4hg0os738dk74g-a/bma_voice_db', 'sqlite:///db.sqlite3'), 
+        conn_max_age=600
     )
 }
 

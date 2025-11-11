@@ -96,6 +96,7 @@ USE_TZ = True
 # --- (นี่คือส่วนที่แก้ไข Error 'STATIC_URL') ---
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/' 
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # (ที่อยู่ของ static/core/images (สำหรับโลโก้))
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'core/static'),

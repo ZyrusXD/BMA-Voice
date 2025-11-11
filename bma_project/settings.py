@@ -129,5 +129,5 @@ ALLOWED_HOSTS = [
     'localhost',
     'condemnable-ed-unevangelically.ngrok-free.dev', 
     # **เพิ่ม URL ของ Render ตรงนี้** (แทนที่ด้วยชื่อแอปของคุณบน Render)
-    'BMA-Voice.onrender.com' 
+    'https://bma-voice.onrender.com' 
 ]

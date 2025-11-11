@@ -1,4 +1,4 @@
-# core/keyword_utils.py (ฉบับเต็ม - ล่าสุด)
+# core/keyword_utils.py (ฉบับเต็ม - แก้ไข SyntaxError)
 
 import re
 from pythainlp import word_tokenize
@@ -131,3 +131,5 @@ def triage_policy_aspect(keywords: list) -> str:
             return KEYWORD_TO_POLICY_MAP[keyword] # (คืนค่าด้านแรกที่เจอ)
             
     return 'ไม่ระบุ'
+
+# --- [แก้ไข!] ลบ '}' ที่เป็น Syntax Error ออกจากบรรทัดนี้ ---

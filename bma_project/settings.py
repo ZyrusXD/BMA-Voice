@@ -121,7 +121,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # --- [Key Fix] Media Files Configuration (Cloudinary) ---
 # ดึงค่า API Keys จาก Render Environment Variables
-CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL')
+CLOUDINARY_URL = os.environ.get('cloudinary://559379725857799:OXmCd_br-NsgzBGsD1J-W5ETkRs@dlvj1pn0y')
 
 # กำหนดให้ Cloudinary เป็นที่เก็บไฟล์ Media (รูปภาพที่ผู้ใช้อัปโหลด)
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'

@@ -34,6 +34,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware', # (ต้องมี)
     'django.middleware.common.CommonMiddleware',
@@ -97,11 +98,6 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/' 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-# (ที่อยู่ของ static/core/images (สำหรับโลโก้))
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'core/static'),
-]
-# --- (สิ้นสุดส่วนที่แก้ไข Error) ---
 
 # (Media Files สำหรับอัปโหลดรูป)
 MEDIA_URL = '/media/'

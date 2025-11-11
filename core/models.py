@@ -240,4 +240,6 @@ class UserMission(models.Model):
         return f"{self.user.username} - {self.mission.title} ({self.date})"
 
 # --- (สิ้นสุดส่วนที่เพิ่ม) ---
-# *** หมายเหตุ: โค้ดที่ซ้ำซ้อนด้านล่างนี้ถูกลบออกแล้ว ***
+
+# *** หมายเหตุ: โค้ดที่ซ้ำซ้อน 3 คลาส (UserActivityLog, Mission, UserMission)
+# *** ที่อยู่ด้านล่างนี้ในไฟล์เดิมของคุณ ถูกลบออกไปแล้ว

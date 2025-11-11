@@ -32,6 +32,8 @@ INSTALLED_APPS = [
     'bootstrap_datepicker_plus',
     'crispy_forms',
     'crispy_bootstrap5',
+    'cloudinary_storage',
+    'cloudinary',
 ]
 
 MIDDLEWARE = [
@@ -155,3 +157,15 @@ GS_DEFAULT_ACL = 'publicRead'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'mediafiles') 
 # ...
+# --- การตั้งค่า Cloudinary (สำหรับ Media Files) ---
+
+# ดึงค่าจาก Environment Variables ของ Render
+CLOUDINARY_CLOUD_NAME = os.environ.get('CLOUDINARY_CLOUD_NAME')
+CLOUDINARY_API_KEY = os.environ.get('CLOUDINARY_API_KEY')
+CLOUDINARY_API_SECRET = os.environ.get('CLOUDINARY_API_SECRET')
+
+# กำหนดให้ Django ใช้ Cloudinary สำหรับการอัปโหลดไฟล์ (Media)
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
+# (เรายังคงใช้ WhiteNoise สำหรับ Static Files (CSS/Logo))
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'

@@ -1,4 +1,4 @@
-# core/tasks.py (ฉบับเต็ม - สร้างใหม่)
+# core/tasks.py (ฉบับเต็ม - แก้ไข SyntaxError)
 
 import random
 from datetime import timedelta
@@ -49,17 +49,19 @@ def assign_daily_missions():
             # (แก้ไข: สุ่ม 5 ภารกิจ)
             # (ใช้ min เพื่อป้องกัน Error ถ้าคลังมีภารกิจไม่ถึง 5)
             num_to_sample = min(len(available_missions), 5)
-            random_missions = random.sample(available_missions, num_to_sample)
             
-            # (สร้าง 5 ภารกิจ)
-            missions_to_create = []
-            for mission in random_missions:
-                missions_to_create.append(
-                    UserMission(user=user, mission=mission, date=today)
-                )
-            
-            UserMission.objects.bulk_create(missions_to_create)
-            new_missions_created_count += len(missions_to_create)
+            if num_to_sample > 0:
+                random_missions = random.sample(available_missions, num_to_sample)
+                
+                # (สร้าง 5 ภารกิจ)
+                missions_to_create = []
+                for mission in random_missions:
+                    missions_to_create.append(
+                        UserMission(user=user, mission=mission, date=today)
+                    )
+                
+                UserMission.objects.bulk_create(missions_to_create)
+                new_missions_created_count += len(missions_to_create)
 
     print(f"✅ [Scheduler] สุ่มภารกิจใหม่ {new_missions_created_count} ภารกิจ สำเร็จ")
 # --- (สิ้นสุดส่วนที่แก้ไข) ---
@@ -106,3 +108,5 @@ def auto_create_weekly_poll():
         PollChoice.objects.create(poll=new_poll, text=choice_text)
 
     print(f"✅ [Scheduler] สร้างโพลอัตโนมัติ (ID: {new_poll.pk}) จากแท็ก #{top_tag.name} สำเร็จ")
+
+# --- [แก้ไข!] ลบ '}' ที่เป็น Syntax Error ออกจากบรรทัดนี้ ---

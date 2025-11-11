@@ -125,9 +125,9 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 ALLOWED_HOSTS = [
-    '127.0.0.1',
-    'localhost',
-    'condemnable-ed-unevangelically.ngrok-free.dev', 
-    # **เพิ่ม URL ของ Render ตรงนี้** (แทนที่ด้วยชื่อแอปของคุณบน Render)
-    'https://bma-voice.onrender.com' 
+    # ... Localhosts, ngrok ...
+    # **เพิ่มชื่อโฮสต์ของ Render ตรงนี้**
+    'dpg-d48p1c4hg0os738dk74g-a.singapore-postgres.render.com', # External Host Name
+    # และ URL สาธารณะของ Web Service ของคุณ เช่น
+    'https://bma-voice.onrender.com'
 ]

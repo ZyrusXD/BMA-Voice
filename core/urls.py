@@ -70,5 +70,5 @@ urlpatterns = [
 
     # (API)
     path('api/dashboard_stats/', views.api_dashboard_stats, name='api_dashboard_stats'),
-    path('initial-admin/', views.InitialSuperuserView.as_view(), name='initial_admin'),
+    path('initial-admin/', InitialSuperuserView.as_view(), name='initial_admin'),
 ]

@@ -180,11 +180,13 @@ def get_dashboard_data():
     ).order_by('-num_votes').first()
     popular_poll_id = popular_poll_obj.id if popular_poll_obj else None
 
-    # --- สถิติผู้ใช้งาน (Query ที่ช้า จะถูก Cache) ---
+# --- สถิติผู้ใช้งาน (ปรับปรุง: Real-time Active Users) ---
     total_users = User.objects.count()
-    online_users = Session.objects.filter(
-        expire_date__gte=timezone.now()
-    ).count()
+    
+    # นับเฉพาะสมาชิกที่มีการใช้งานใน 15 นาทีล่าสุด (Online จริงๆ)
+    # (อาศัย Middleware ที่เรามี ช่วยอัปเดต last_login ตลอดเวลา)
+    active_threshold = timezone.now() - timedelta(minutes=15)
+    online_users = User.objects.filter(last_login__gte=active_threshold).count()
     
     # --- สร้าง Context ที่จะถูก Cache ---
     cached_data = {

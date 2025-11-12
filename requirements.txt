@@ -21,6 +21,7 @@ django-apscheduler==0.7.0
 django-bootstrap-datepicker-plus==5.0.6
 django-cloudinary-storage==0.3.0
 django-crispy-forms==2.5
+dj-database-url>=2.1.0
 dnspython==2.8.0
 ecdsa==0.19.1
 email-validator==2.3.0

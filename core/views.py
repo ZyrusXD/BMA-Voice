@@ -813,7 +813,7 @@ CRON_JOB_SECRET = os.environ.get('CRON_JOB_SECRET')
 @method_decorator(csrf_exempt, name='dispatch')
 class RunCronTaskView(View):
     def post(self, request, task_type):
-        # 1. การตรวจสอบความปลอดภัย (สำคัญ!)
+        # 1. ตรวจสอบความปลอดภัย (เหมือนเดิม)
         auth_header = request.headers.get('X-Auth-Token')
         if not CRON_JOB_SECRET or auth_header != CRON_JOB_SECRET:
              return HttpResponseForbidden("Invalid authorization token.")
@@ -839,5 +839,14 @@ class RunCronTaskView(View):
                 return HttpResponse("Expired sessions cleared.", status=200)
             except Exception as e:
                 return HttpResponse(f"Error clearing sessions: {e}", status=500)
+        
+        elif task_type == 'backfill':
+            try:
+                # เรียกคำสั่ง backfill_posts ที่เราสร้างไว้
+                call_command('backfill_posts') 
+                return HttpResponse("Backfill process completed.", status=200)
+            except Exception as e:
+                return HttpResponse(f"Error running backfill: {e}", status=500)
+        # --- [สิ้นสุดส่วนที่เพิ่ม] ---
 
         return HttpResponseForbidden("Invalid task type.")

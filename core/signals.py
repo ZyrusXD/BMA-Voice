@@ -11,7 +11,7 @@ from .models import (
     Post, Comment, Reaction, User, Tag, PollVote, 
     UserActivityLog, UserMission 
 )
-from .keyword_utils import extract_keywords_from_text, analyze_sentiment 
+from .keyword_utils import extract_keywords_from_text, analyze_sentiment, triage_policy_aspect # <--- Import เพิ่ม
 
 DAILY_POINT_LIMIT = 200 
 
@@ -155,32 +155,55 @@ def check_mission_completion(user, action_type):
         print(f"⚠️ ERROR [Mission Check Signal]: {e}")
 
 
-# --- [ปรับปรุง!] Signal Handlers ---
+# --- Signal Handlers ---
 
 @receiver(post_save, sender=Post)
 def on_post_save(sender, instance, created, **kwargs):
     if created:
-        # (ข้อ 1) ให้คะแนนพื้นฐาน
         add_points(instance.owner, 'create_post')
-        
-        # (ข้อ 1) ติดตามภารกิจ "สร้างโพสต์"
         check_mission_completion(instance.owner, 'create_post')
         
-        # (ข้อ 5) [ใหม่!] ติดตามภารกิจ "ติดแฮชแท็ก"
         if instance.tags.exists():
             check_mission_completion(instance.owner, 'create_post_hashtag')
             
-        # (ข้อ 6) [ใหม่!] ติดตามภารกิจ "ปักหมุด"
         if instance.latitude is not None and instance.longitude is not None:
             check_mission_completion(instance.owner, 'create_post_location')
     
-    # (ส่วน NLP - เหมือนเดิม)
-    if instance.sentiment_score == 0:
+    # --- [แก้ไขใหม่] Logic NLP ที่สมบูรณ์ ---
+    # ตรวจสอบว่ายังไม่ได้วิเคราะห์ (score=0 และ aspect='ไม่ระบุ')
+    if instance.sentiment_score == 0 and instance.policy_aspect == 'ไม่ระบุ':
         try:
-            # ... (โค้ด NLP) ...
-            pass
+            full_text = f"{instance.title} {instance.content}"
+            
+            # 1. วิเคราะห์ Sentiment
+            sentiment_score = analyze_sentiment(full_text)
+            
+            # 2. วิเคราะห์ Keywords & Tags
+            keywords = extract_keywords_from_text(full_text) 
+            
+            # 3. วิเคราะห์ Policy Aspect (9 ด้าน)
+            policy_aspect = triage_policy_aspect(keywords)
+            
+            # 4. บันทึก Tags
+            if keywords:
+                instance.tags.clear() 
+                tags_to_add = []
+                for keyword_name in keywords:
+                    tag, _ = Tag.objects.get_or_create(name=keyword_name)
+                    tags_to_add.append(tag)
+                instance.tags.add(*tags_to_add)
+            
+            # 5. [สำคัญ!] บันทึกผลลง Database โดยตรง
+            # (ใช้ .update เพื่อป้องกัน Loop ของ Signal)
+            Post.objects.filter(pk=instance.pk).update(
+                sentiment_score=sentiment_score,
+                policy_aspect=policy_aspect
+            )
+            
+            print(f"✅ NLP Success: Post #{instance.pk} -> {policy_aspect}, Score: {sentiment_score}")
+            
         except Exception as e:
-            print(f"⚠️ ERROR [Post Save Signal - NLP]: {e}")
+            print(f"⚠️ ERROR [Post NLP]: {e}")
 
 @receiver(post_delete, sender=Post)
 def on_post_delete(sender, instance, **kwargs):

@@ -119,17 +119,24 @@ STATICFILES_DIRS = [
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage' 
 
 
-# --- [Key Fix] Media Files Configuration (Cloudinary) ---
+# [สำคัญ!] บอก Django ว่าเรากำลังรันอยู่หลัง Load Balancer (Render) ที่ใช้ HTTPS
+# นี่คือการแก้ไขเพื่อสร้าง URL ภาพที่ถูกต้อง (https://res.cloudinary.com/...)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# แนะนำให้เปิดใช้งาน SSL Redirect ใน Production ด้วย
+SECURE_SSL_REDIRECT = True 
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+
 # ดึงค่า API Keys จาก Render Environment Variables
 CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL')
 
 # กำหนดให้ Cloudinary เป็นที่เก็บไฟล์ Media (รูปภาพที่ผู้ใช้อัปโหลด)
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
-# Media URL ต้องถูกตั้งค่าเพื่อให้ Django สร้าง URL ที่ถูกต้อง
+# Media URL (คงไว้)
 MEDIA_URL = '/media/'
-# MEDIA_ROOT ไม่จำเป็นต้องใช้เมื่อใช้ Cloudinary แต่เราจะเก็บไว้เพื่อความสมบูรณ์
-MEDIA_ROOT = os.path.join(BASE_DIR, 'mediafiles') 
+MEDIA_ROOT = os.path.join(BASE_DIR, 'mediafiles')
 
 
 # Default primary key field type

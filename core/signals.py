@@ -171,18 +171,23 @@ def on_post_save(sender, instance, created, **kwargs):
     
     # --- [แก้ไขใหม่] Logic NLP ที่สมบูรณ์ ---
     # ตรวจสอบว่ายังไม่ได้วิเคราะห์ (score=0 และ aspect='ไม่ระบุ')
-    if instance.sentiment_score == 0 and instance.policy_aspect == 'ไม่ระบุ':
+    if instance.sentiment_score == 0:
         try:
             full_text = f"{instance.title} {instance.content}"
             
-            # 1. วิเคราะห์ Sentiment
+            # 1. วิเคราะห์ Sentiment (ทำเสมอ)
             sentiment_score = analyze_sentiment(full_text)
             
-            # 2. วิเคราะห์ Keywords & Tags
+            # 2. วิเคราะห์ Keywords (เพื่อหา Tags)
             keywords = extract_keywords_from_text(full_text) 
             
-            # 3. วิเคราะห์ Policy Aspect (9 ด้าน)
-            policy_aspect = triage_policy_aspect(keywords)
+            # 3. วิเคราะห์ Policy Aspect (ทำเฉพาะตอนที่ยัง 'ไม่ระบุ')
+            # (ถ้า user เลือกมาแล้ว ให้ใช้ค่าเดิม ไม่ต้องทับ)
+            current_aspect = instance.policy_aspect
+            if current_aspect == 'ไม่ระบุ':
+                new_aspect = triage_policy_aspect(keywords)
+            else:
+                new_aspect = current_aspect
             
             # 4. บันทึก Tags
             if keywords:
@@ -193,18 +198,17 @@ def on_post_save(sender, instance, created, **kwargs):
                     tags_to_add.append(tag)
                 instance.tags.add(*tags_to_add)
             
-            # 5. [สำคัญ!] บันทึกผลลง Database โดยตรง
-            # (ใช้ .update เพื่อป้องกัน Loop ของ Signal)
+      # 5. อัปเดตค่าลง Database
             Post.objects.filter(pk=instance.pk).update(
                 sentiment_score=sentiment_score,
-                policy_aspect=policy_aspect
+                policy_aspect=new_aspect
             )
             
-            print(f"✅ NLP Success: Post #{instance.pk} -> {policy_aspect}, Score: {sentiment_score}")
+            print(f"✅ NLP Fixed: Post #{instance.pk} -> Score: {sentiment_score}, Aspect: {new_aspect}")
             
         except Exception as e:
             print(f"⚠️ ERROR [Post NLP]: {e}")
-
+            
 @receiver(post_delete, sender=Post)
 def on_post_delete(sender, instance, **kwargs):
     if instance.owner:

@@ -205,8 +205,8 @@ def get_dashboard_data():
         'online_users': online_users,
     }
     
-    # --- บันทึกข้อมูลลง Cache 10 นาที ---
-    cache.set(cache_key, cached_data, timeout=600) 
+    # --- บันทึกข้อมูลลง Cache 1 วินาที ---
+    cache.set(cache_key, cached_data, timeout=1) 
     
     return cached_data
 

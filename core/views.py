@@ -183,9 +183,9 @@ def get_dashboard_data():
 # --- สถิติผู้ใช้งาน (ปรับปรุง: Real-time Active Users) ---
     total_users = User.objects.count()
     
-    # นับเฉพาะสมาชิกที่มีการใช้งานใน 15 นาทีล่าสุด (Online จริงๆ)
+    # นับเฉพาะสมาชิกที่มีการใช้งานใน 1 นาทีล่าสุด (Online จริงๆ)
     # (อาศัย Middleware ที่เรามี ช่วยอัปเดต last_login ตลอดเวลา)
-    active_threshold = timezone.now() - timedelta(minutes=15)
+    active_threshold = timezone.now() - timedelta(minutes=1)
     online_users = User.objects.filter(last_login__gte=active_threshold).count()
     
     # --- สร้าง Context ที่จะถูก Cache ---

@@ -10,6 +10,7 @@ cloudinary>=1.36.0
 django-cloudinary-storage>=0.3.0
 requests>=2.31.0
 urllib3>=2.0.0
+dj-database-url>=2.1.0
 
 # --- Third-Party Apps ---
 django-apscheduler>=0.7.0

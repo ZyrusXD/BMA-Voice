@@ -43,7 +43,7 @@ def assign_daily_missions():
                 m for m in all_missions if m.pk not in completed_yesterday
             ]
             
-            if len(available_missions) < 5:
+            if len(available_missions) < 1:
                 available_missions = all_missions # (ถ้าคลังเล็กไป ก็สุ่มซ้ำได้)
 
             # (แก้ไข: สุ่ม 5 ภารกิจ)
